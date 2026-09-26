@@ -1,0 +1,24 @@
+package com.briefai.auth.controller;
+
+import com.briefai.auth.dto.NewUserRequest;
+import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.service.AuthService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/v1/auth")
+public class AuthController {
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public NewUserResponse register(@Valid @RequestBody NewUserRequest request) {
+        return authService.register(request);
+    }
+}
