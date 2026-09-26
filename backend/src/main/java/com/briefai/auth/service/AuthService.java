@@ -1,9 +1,14 @@
 package com.briefai.auth.service;
 
-import com.briefai.auth.controller.AuthController;
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
-import com.briefai.exception.UserAlreadyExistsException;
+import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
+import com.briefai.exception.otpExceptions.InvalidOtpException;
+import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
+import com.briefai.exception.otpExceptions.OtpExpiredException;
+import com.briefai.exception.user.UserAlreadyExistsException;
+import com.briefai.exception.user.UserNotFoundException;
 import com.briefai.user.entity.User;
 import com.briefai.user.repository.UserRepository;
 import org.slf4j.Logger;
@@ -17,10 +22,12 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OtpService otpService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, OtpService otpService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.otpService = otpService;
     }
 
     @Transactional
@@ -38,6 +45,28 @@ public class AuthService {
         User user = new User(request.getName(), email, passwordHash);
         User savedUser = userRepository.save(user);
         logger.debug("User {} created successfully.", savedUser.getName());
+
+        // generate OTP for the user
+        String otp = otpService.createOtp(savedUser);
+        // TODO:: Send the otp to user from here
+
         return new NewUserResponse(savedUser.getId(), savedUser.getName(), savedUser.getEmail(), savedUser.isEmailVerified());
+    }
+
+    @Transactional(noRollbackFor = {InvalidOtpException.class, OtpAttemptsExceededException.class, OtpExpiredException.class})
+    public void verifyEmail(VerifyEmailRequest request) {
+
+        String sanitizedEmail = request.getEmail().trim().toLowerCase();
+
+        User user = userRepository.findByEmail(sanitizedEmail)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
+
+        if (user.isEmailVerified()) {
+            throw new EmailAlreadyVerifiedException("Email is already verified.");
+        }
+
+        otpService.verifyOtp(user, request.getOtp());
+
+        user.markEmailAsVerified();
     }
 }

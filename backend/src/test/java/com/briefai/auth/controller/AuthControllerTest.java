@@ -2,8 +2,12 @@ package com.briefai.auth.controller;
 
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.dto.VerifyEmailRequest;
 import com.briefai.auth.service.AuthService;
-import com.briefai.exception.UserAlreadyExistsException;
+import com.briefai.exception.otpExceptions.InvalidOtpException;
+import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
+import com.briefai.exception.otpExceptions.OtpExpiredException;
+import com.briefai.exception.user.UserAlreadyExistsException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -13,8 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.ObjectMapper;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -123,5 +126,106 @@ class AuthControllerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("USER_ALREADY_EXISTS"))
                 .andExpect(jsonPath("$.message").value("User already exists with this email."));
+    }
+
+    @Test
+    void verifyEmail_shouldReturn204ForValidOtp() throws Exception {
+        String requestBody = """
+            {
+                "email": "penny@test.com",
+                "otp": "123456"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isNoContent());
+
+        verify(authService).verifyEmail(any(VerifyEmailRequest.class));
+    }
+
+    @Test
+    void verifyEmail_shouldReturn400ForInvalidOtpFormat() throws Exception {
+        String requestBody = """
+            {
+                "email": "penny@test.com",
+                "otp": "123"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("OTP must be of 6 digits"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void verifyEmail_shouldReturn400ForWrongOtp() throws Exception {
+
+        doThrow(new InvalidOtpException("Invalid OTP.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
+
+        String requestBody = """
+            {
+                "email": "penny@test.com",
+                "otp": "999999"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_OTP"))
+                .andExpect(jsonPath("$.message").value("Invalid OTP."));
+    }
+
+    @Test
+    void verifyEmail_shouldReturn400ForExpiredOtp() throws Exception {
+
+        doThrow(new OtpExpiredException("OTP has expired.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
+
+        String requestBody = """
+            {
+                "email": "penny@test.com",
+                "otp": "123456"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("OTP_EXPIRED"))
+                .andExpect(jsonPath("$.message").value("OTP has expired."));
+    }
+
+    @Test
+    void verifyEmail_shouldReturn429WhenAttemptsExceeded() throws Exception {
+
+        doThrow(new OtpAttemptsExceededException("Maximum OTP verification attempts exceeded.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
+
+        String requestBody = """
+            {
+                "email": "penny@test.com",
+                "otp": "999999"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody)
+                )
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error").value("OTP_ATTEMPT_EXHAUSTED"))
+                .andExpect(jsonPath("$.message").value("Maximum OTP verification attempts exceeded."));
     }
 }

@@ -67,4 +67,8 @@ public class User {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void markEmailAsVerified() {
+        this.emailVerified = true;
+    }
 }

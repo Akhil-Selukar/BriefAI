@@ -32,3 +32,8 @@ management:
 logging:
   level:
     root: ${LOG_LEVEL:INFO}
+
+app:
+  otp:
+    expiration-minutes: ${OTP_EXPIRATION_MINUTES:5}
+    max-attempts: ${OTP_MAX_ATTEMPTS:5}
