@@ -1,4 +1,4 @@
-package com.briefai.security.config;
+package com.briefai.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

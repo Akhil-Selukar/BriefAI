@@ -2,10 +2,7 @@ package com.briefai.auth.service;
 
 import com.briefai.auth.entity.EmailVerificationOtp;
 import com.briefai.auth.repository.EmailVerificationOtpRepository;
-import com.briefai.exception.otpExceptions.InvalidOtpException;
-import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
-import com.briefai.exception.otpExceptions.OtpExpiredException;
-import com.briefai.exception.otpExceptions.OtpNotFoundException;
+import com.briefai.exception.otpExceptions.*;
 import com.briefai.user.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,9 +36,12 @@ class OtpServiceTest {
 
     private User user;
 
+    private Clock clock;
+
     @BeforeEach
     void setUp() {
-        otpService = new OtpService(otpRepository, passwordEncoder, 5, 5);
+        clock = Clock.fixed(Instant.parse("2026-09-27T10:00:00Z"), ZoneOffset.UTC);
+        otpService = new OtpService(otpRepository, passwordEncoder, 5, 5, 60, clock);
         user = new User("Penny", "penny@test.com", "encoded-password");
     }
 
@@ -97,9 +100,9 @@ class OtpServiceTest {
 
     @Test
     void createOtp_shouldMarkExistingOtpsAsUsed() {
-
-        EmailVerificationOtp oldOtp1 = new EmailVerificationOtp(user, "2$HFfsdbmn2sf#23", LocalDateTime.now().plusMinutes(2));
-        EmailVerificationOtp oldOtp2 = new EmailVerificationOtp(user, "1#asdasShD$ADa", LocalDateTime.now().plusMinutes(3));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp oldOtp1 = new EmailVerificationOtp(user, "2$HFfsdbmn2sf#23", createdAt.plusMinutes(2), createdAt);
+        EmailVerificationOtp oldOtp2 = new EmailVerificationOtp(user, "1#asdasShD$ADa", createdAt.plusMinutes(3), createdAt);
 
         when(otpRepository.findAllByUserIdAndUsedFalse(any())).thenReturn(List.of(oldOtp1, oldOtp2));
         when(passwordEncoder.encode(anyString())).thenReturn("3Dfgfsdf$F%asd#");
@@ -115,8 +118,8 @@ class OtpServiceTest {
     // verify OTP tests
     @Test
     void verifyOtp_shouldMarkOtpAsUsedWhenOtpIsCorrect() {
-
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5), createdAt);
 
         when(otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(isNull())).thenReturn(Optional.of(verificationOtp));
         when(passwordEncoder.matches("123456", "3Dfgfsdf$F%asd#")).thenReturn(true);
@@ -129,8 +132,8 @@ class OtpServiceTest {
 
     @Test
     void verifyOtp_shouldIncrementAttemptCountWhenOtpIsWrong() {
-
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5), createdAt);
 
         when(otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(isNull())).thenReturn(Optional.of(verificationOtp));
         when(passwordEncoder.matches("999999", "3Dfgfsdf$F%asd#")).thenReturn(false);
@@ -143,8 +146,8 @@ class OtpServiceTest {
 
     @Test
     void verifyOtp_shouldMarkOtpAsUsedOnFifthFailedAttempt() {
-
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5), createdAt);
 
         // simulate 4 already failed attempts
         verificationOtp.incrementAttemptCount();
@@ -164,8 +167,8 @@ class OtpServiceTest {
 
     @Test
     void verifyOtp_shouldRejectExpiredOtp() {
-
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "hashed-otp", LocalDateTime.now().minusMinutes(1));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", createdAt.minusMinutes(1), createdAt);
 
         when(otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(isNull())).thenReturn(Optional.of(verificationOtp));
 
@@ -186,8 +189,8 @@ class OtpServiceTest {
 
     @Test
     void verifyOtp_shouldRejectOtpWhenAttemptsAlreadyExceeded() {
-
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "hashed-otp", LocalDateTime.now().plusMinutes(5));
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", LocalDateTime.now().plusMinutes(5), createdAt);
 
         // All 5 attempts are already exhausted
         verificationOtp.incrementAttemptCount();
@@ -203,5 +206,30 @@ class OtpServiceTest {
         verifyNoInteractions(passwordEncoder);
     }
 
+    @Test
+    void resendOtp_shouldRejectRequestDuringCoolDown() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 59, 30);
 
+        EmailVerificationOtp existingOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", createdAt.plusMinutes(5), createdAt);
+        when(otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(isNull())).thenReturn(Optional.of(existingOtp));
+
+        assertThrows(OtpResendCoolDownException.class, () -> otpService.resendOtp(user));
+        assertFalse(existingOtp.isUsed());
+    }
+
+    @Test
+    void resendOtp_shouldCreateNewOtpAfterCoolDown() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 9, 27, 9, 58, 30);
+        EmailVerificationOtp existingOtp = new EmailVerificationOtp(user, "3Dfgfsdf$F%asd#", createdAt.plusMinutes(5), createdAt);
+
+        when(otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(isNull())).thenReturn(Optional.of(existingOtp));
+        when(otpRepository.findAllByUserIdAndUsedFalse(isNull())).thenReturn(List.of(existingOtp));
+        when(passwordEncoder.encode(anyString())).thenReturn("4fHasdll7D&Sada");
+
+        String newOtp = otpService.resendOtp(user);
+
+        assertTrue(existingOtp.isUsed());
+        assertTrue(newOtp.matches("\\d{6}"));
+        verify(otpRepository).save(any(EmailVerificationOtp.class));
+    }
 }

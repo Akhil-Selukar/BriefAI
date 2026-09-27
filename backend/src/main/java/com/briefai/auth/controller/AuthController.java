@@ -2,6 +2,7 @@ package com.briefai.auth.controller;
 
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.dto.ResendOtpRequest;
 import com.briefai.auth.dto.VerifyEmailRequest;
 import com.briefai.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -27,5 +28,11 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void verifyEmail(@Valid @RequestBody VerifyEmailRequest request){
         authService.verifyEmail(request);
+    }
+
+    @PostMapping("/resend-otp")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resendOtp(@Valid @RequestBody ResendOtpRequest request) {
+        authService.resendOtp(request);
     }
 }

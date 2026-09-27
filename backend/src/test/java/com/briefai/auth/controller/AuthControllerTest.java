@@ -2,11 +2,13 @@ package com.briefai.auth.controller;
 
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.dto.ResendOtpRequest;
 import com.briefai.auth.dto.VerifyEmailRequest;
 import com.briefai.auth.service.AuthService;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
 import com.briefai.exception.otpExceptions.OtpExpiredException;
+import com.briefai.exception.otpExceptions.OtpResendCoolDownException;
 import com.briefai.exception.user.UserAlreadyExistsException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -228,4 +230,56 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value("OTP_ATTEMPT_EXHAUSTED"))
                 .andExpect(jsonPath("$.message").value("Maximum OTP verification attempts exceeded."));
     }
+
+    @Test
+    void resendOtp_shouldReturn204ForSuccessfulResend() throws Exception {
+
+        mockMvc.perform(post("/api/v1/auth/resend-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "penny@test.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isNoContent());
+
+        verify(authService).resendOtp(any(ResendOtpRequest.class));
+    }
+
+    @Test
+    void resendOtp_shouldReturn400ForInvalidEmail() throws Exception {
+
+        mockMvc.perform(post("/api/v1/auth/resend-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "pennyAtTest.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+
+        verifyNoInteractions(authService);
+    }
+
+    @Test
+    void resendOtp_shouldReturn429DuringCoolDownTime() throws Exception {
+        doThrow(new OtpResendCoolDownException("Please wait before requesting another OTP.")).when(authService)
+                .resendOtp(any(ResendOtpRequest.class));
+
+        mockMvc.perform(post("/api/v1/auth/resend-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "penny@test.com"
+                            }
+                            """)
+                )
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error").value("OTP_RESEND_COOLDOWN"));
+    }
+
+
 }

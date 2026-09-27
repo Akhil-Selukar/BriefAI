@@ -34,16 +34,16 @@ public class EmailVerificationOtp {
     public EmailVerificationOtp() {
     }
 
-    public EmailVerificationOtp(User user, String otpHash, LocalDateTime expiresAt) {
+    public EmailVerificationOtp(User user, String otpHash, LocalDateTime expiresAt, LocalDateTime createdAt) {
         this.user = user;
         this.otpHash = otpHash;
         this.expiresAt = expiresAt;
         this.attemptCount = 0;
         this.used = false;
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = createdAt;
     }
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 

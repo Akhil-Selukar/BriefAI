@@ -2,6 +2,7 @@ package com.briefai.auth.service;
 
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.dto.ResendOtpRequest;
 import com.briefai.auth.dto.VerifyEmailRequest;
 import com.briefai.email.service.EmailService;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
@@ -73,5 +74,19 @@ public class AuthService {
         otpService.verifyOtp(user, request.getOtp());
 
         user.markEmailAsVerified();
+    }
+
+    @Transactional
+    public void resendOtp(ResendOtpRequest request) {
+        String normalizedEmail = request.getEmail().trim().toLowerCase();
+
+        User user = userRepository.findByEmail(normalizedEmail).orElseThrow(() -> new UserNotFoundException("User not found."));
+
+        if (user.isEmailVerified()) {
+            throw new EmailAlreadyVerifiedException("Email is already verified.");
+        }
+
+        String otp = otpService.resendOtp(user);
+        emailService.sendVerificationOtp(user.getEmail(), user.getName(), otp);
     }
 }

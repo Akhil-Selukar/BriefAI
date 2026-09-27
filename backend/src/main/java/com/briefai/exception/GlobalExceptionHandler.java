@@ -148,4 +148,19 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(error);
     }
+
+    @ExceptionHandler(OtpResendCoolDownException.class)
+    public ResponseEntity<ErrorResponse> handleOtpResendCoolDownException(OtpResendCoolDownException ex, HttpServletRequest request) {
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "OTP_RESEND_COOLDOWN",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(error);
+    }
 }

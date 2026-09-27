@@ -2,6 +2,7 @@ package com.briefai.auth.service;
 
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
+import com.briefai.auth.dto.ResendOtpRequest;
 import com.briefai.auth.dto.VerifyEmailRequest;
 import com.briefai.email.service.EmailService;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
@@ -181,5 +182,47 @@ class AuthServiceTest {
         authService.register(request);
 
         verify(emailService).sendVerificationOtp("penny@test.com", "Penny", "123456");
+    }
+
+    @Test
+    void resendOtp_shouldSendNewOtp() {
+        ResendOtpRequest request = new ResendOtpRequest("penny@test.com");
+        User user = new User("Penny", "penny@test.com", "1@asdDFcdBjlipe");
+
+        when(userRepository.findByEmail("penny@test.com")).thenReturn(Optional.of(user));
+        when(otpService.resendOtp(user)).thenReturn("654321");
+
+        authService.resendOtp(request);
+
+        verify(otpService).resendOtp(user);
+        verify(emailService).sendVerificationOtp("penny@test.com", "Penny", "654321");
+    }
+
+    @Test
+    void resendOtp_shouldThrowUserNotFoundWhenUserDoesNotExist() {
+
+        ResendOtpRequest request = new ResendOtpRequest("sheldon@test.com");
+
+        when(userRepository.findByEmail("sheldon@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> authService.resendOtp(request));
+
+        verifyNoInteractions(otpService);
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void resendOtp_shouldThrowAlreadyVerifiedForAlreadyVerifiedUser() {
+
+        ResendOtpRequest request = new ResendOtpRequest("penny@test.com");
+
+        User user = new User("Penny", "penny@test.com", "1@asdDFcdBjlipe");
+        user.markEmailAsVerified();
+
+        when(userRepository.findByEmail("penny@test.com")).thenReturn(Optional.of(user));
+        assertThrows(EmailAlreadyVerifiedException.class, () -> authService.resendOtp(request));
+
+        verifyNoInteractions(otpService);
+        verifyNoInteractions(emailService);
     }
 }

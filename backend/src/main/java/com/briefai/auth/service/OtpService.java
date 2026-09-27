@@ -2,10 +2,7 @@ package com.briefai.auth.service;
 
 import com.briefai.auth.entity.EmailVerificationOtp;
 import com.briefai.auth.repository.EmailVerificationOtpRepository;
-import com.briefai.exception.otpExceptions.InvalidOtpException;
-import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
-import com.briefai.exception.otpExceptions.OtpExpiredException;
-import com.briefai.exception.otpExceptions.OtpNotFoundException;
+import com.briefai.exception.otpExceptions.*;
 import com.briefai.user.entity.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class OtpService {
@@ -25,15 +24,20 @@ public class OtpService {
 
     private final EmailVerificationOtpRepository otpRepository;
     private final PasswordEncoder passwordEncoder;
-    private long expirationMinutes;
-    private int maxAttempts;
+    private final Clock clock;
+    private final long expirationMinutes;
+    private final int maxAttempts;
+    private final long resendCoolDownSeconds;
 
     public OtpService(EmailVerificationOtpRepository otpRepository, PasswordEncoder passwordEncoder,
-                      @Value("${app.otp.expiration-minutes}") long expirationMinutes, @Value("${app.otp.max-attempts}")int maxAttempts) {
+                      @Value("${app.otp.expiration-minutes}") long expirationMinutes, @Value("${app.otp.max-attempts}")int maxAttempts,
+                    @Value("${app.otp.resend-cooldown-seconds}") long resendCoolDownSeconds, Clock clock) {
         this.otpRepository = otpRepository;
         this.passwordEncoder = passwordEncoder;
         this.expirationMinutes = expirationMinutes;
         this.maxAttempts = maxAttempts;
+        this.resendCoolDownSeconds = resendCoolDownSeconds;
+        this.clock = clock;
     }
 
     @Transactional
@@ -46,12 +50,34 @@ public class OtpService {
         String otp = generateOtp();
         String otpHash = passwordEncoder.encode(otp);
 
+        LocalDateTime createdAt = LocalDateTime.now(clock);
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(expirationMinutes);
 
-        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, otpHash, expiresAt);
+        EmailVerificationOtp verificationOtp = new EmailVerificationOtp(user, otpHash, expiresAt, createdAt);
         otpRepository.save(verificationOtp);
 
         return otp;
+    }
+
+    @Transactional
+    public String resendOtp(User user) {
+
+        Optional<EmailVerificationOtp> latestOtp = otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(user.getId());
+
+        // if an OTP generated withing cool down time exist then do not create new OTP
+        if (latestOtp.isPresent()) {
+            EmailVerificationOtp existingOtp = latestOtp.get();
+
+            LocalDateTime coolDownEndsAt = existingOtp.getCreatedAt().plusSeconds(resendCoolDownSeconds);
+            LocalDateTime currTime = LocalDateTime.now(clock);
+
+            if (currTime.isBefore(coolDownEndsAt)) {
+                throw new OtpResendCoolDownException("Please wait before requesting another OTP.");
+            }
+        }
+
+        // else request new OTP, createOTP() handles the invalidation of old active OTPs present for the user.
+        return createOtp(user);
     }
 
     private String generateOtp() {

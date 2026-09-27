@@ -49,6 +49,7 @@ app:
   otp:
     expiration-minutes: ${OTP_EXPIRATION_MINUTES:5}
     max-attempts: ${OTP_MAX_ATTEMPTS:5}
+    resend-cooldown-seconds: ${RESEND_OTP_COOLDOWN_SEC:60}
 
   email:
     from: ${MAIL_FROM}
