@@ -1,15 +1,16 @@
 package com.briefai.auth.controller;
 
-import com.briefai.auth.dto.NewUserRequest;
-import com.briefai.auth.dto.NewUserResponse;
-import com.briefai.auth.dto.ResendOtpRequest;
-import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.auth.dto.*;
 import com.briefai.auth.service.AuthService;
+import com.briefai.exception.auth.EmailNotVerifiedException;
+import com.briefai.exception.auth.InvalidCredentialsException;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
 import com.briefai.exception.otpExceptions.OtpExpiredException;
 import com.briefai.exception.otpExceptions.OtpResendCoolDownException;
 import com.briefai.exception.user.UserAlreadyExistsException;
+import com.briefai.security.service.JwtService;
+import com.briefai.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -34,6 +35,12 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockitoBean
+    private JwtService jwtService;
+
+    @MockitoBean
+    private UserRepository userRepository;
+
     @Test
     void register_shouldReturn201ForValidRequest() throws Exception {
 
@@ -44,9 +51,9 @@ class AuthControllerTest {
         when(authService.register(any(NewUserRequest.class))).thenReturn(response);
 
         mockMvc.perform(
-                post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isCreated())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
@@ -60,16 +67,16 @@ class AuthControllerTest {
     void register_shouldReturn400WhenEmailMissing() throws Exception {
 
         String requestBody = """
-            {
-                "name": "Penny",
-                "password": "Penny#123"
-            }
-            """;
+                {
+                    "name": "Penny",
+                    "password": "Penny#123"
+                }
+                """;
 
         mockMvc.perform(
-                post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody)
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
@@ -84,9 +91,9 @@ class AuthControllerTest {
         NewUserRequest request = new NewUserRequest("Penny", "PennyTest.com", "Penny#123");
 
         mockMvc.perform(
-                post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
@@ -101,9 +108,9 @@ class AuthControllerTest {
         NewUserRequest request = new NewUserRequest("Penny", "penny@test.com", "short");
 
         mockMvc.perform(
-                post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
@@ -121,9 +128,9 @@ class AuthControllerTest {
                 .thenThrow(new UserAlreadyExistsException());
 
         mockMvc.perform(
-                post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        post("/api/v1/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("USER_ALREADY_EXISTS"))
@@ -133,11 +140,11 @@ class AuthControllerTest {
     @Test
     void verifyEmail_shouldReturn204ForValidOtp() throws Exception {
         String requestBody = """
-            {
-                "email": "penny@test.com",
-                "otp": "123456"
-            }
-            """;
+                {
+                    "email": "penny@test.com",
+                    "otp": "123456"
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -151,11 +158,11 @@ class AuthControllerTest {
     @Test
     void verifyEmail_shouldReturn400ForInvalidOtpFormat() throws Exception {
         String requestBody = """
-            {
-                "email": "penny@test.com",
-                "otp": "123"
-            }
-            """;
+                {
+                    "email": "penny@test.com",
+                    "otp": "123"
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -174,11 +181,11 @@ class AuthControllerTest {
         doThrow(new InvalidOtpException("Invalid OTP.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
 
         String requestBody = """
-            {
-                "email": "penny@test.com",
-                "otp": "999999"
-            }
-            """;
+                {
+                    "email": "penny@test.com",
+                    "otp": "999999"
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -195,11 +202,11 @@ class AuthControllerTest {
         doThrow(new OtpExpiredException("OTP has expired.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
 
         String requestBody = """
-            {
-                "email": "penny@test.com",
-                "otp": "123456"
-            }
-            """;
+                {
+                    "email": "penny@test.com",
+                    "otp": "123456"
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -216,11 +223,11 @@ class AuthControllerTest {
         doThrow(new OtpAttemptsExceededException("Maximum OTP verification attempts exceeded.")).when(authService).verifyEmail(any(VerifyEmailRequest.class));
 
         String requestBody = """
-            {
-                "email": "penny@test.com",
-                "otp": "999999"
-            }
-            """;
+                {
+                    "email": "penny@test.com",
+                    "otp": "999999"
+                }
+                """;
 
         mockMvc.perform(post("/api/v1/auth/verify-email")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -237,10 +244,10 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/resend-otp")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "email": "penny@test.com"
-                            }
-                            """)
+                                {
+                                  "email": "penny@test.com"
+                                }
+                                """)
                 )
                 .andExpect(status().isNoContent());
 
@@ -253,10 +260,10 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/resend-otp")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "email": "pennyAtTest.com"
-                            }
-                            """)
+                                {
+                                  "email": "pennyAtTest.com"
+                                }
+                                """)
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
@@ -272,14 +279,86 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/resend-otp")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                            {
-                              "email": "penny@test.com"
-                            }
-                            """)
+                                {
+                                  "email": "penny@test.com"
+                                }
+                                """)
                 )
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.error").value("OTP_RESEND_COOLDOWN"));
     }
 
+    @Test
+    void login_shouldReturn200AndTokenForSuccess() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(new LoginResponse("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3O",
+                        "Bearer", 3600));
 
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "penny@test.com",
+                                  "password": "Penny@123"
+                                }
+                                """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3O"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.expiresIn").value(3600));
+    }
+
+    @Test
+    void login_shouldReturn400ForInvalidRequest() throws Exception {
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "penny@test.com"
+                                }
+                                """)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void login_shouldReturn401ForInvalidCredentials() throws Exception {
+
+        doThrow(new InvalidCredentialsException("Invalid email or password.")).when(authService)
+                .login(any(LoginRequest.class));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "penny@test.com",
+                                  "password": "Penny@12345685213"
+                                }
+                                """)
+                )
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void login_shouldReturn403ForUnverifiedEmail() throws Exception {
+
+        doThrow(new EmailNotVerifiedException("Email must be verified before login.")).when(authService)
+                .login(any(LoginRequest.class));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "email": "penny@test.com",
+                                  "password": "Penny@123"
+                                }
+                                """)
+                )
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("EMAIL_NOT_VERIFIED"));
+    }
 }

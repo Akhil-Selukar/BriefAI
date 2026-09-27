@@ -1,12 +1,10 @@
 package com.briefai.auth.controller;
 
-import com.briefai.auth.dto.NewUserRequest;
-import com.briefai.auth.dto.NewUserResponse;
-import com.briefai.auth.dto.ResendOtpRequest;
-import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.auth.dto.*;
 import com.briefai.auth.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,5 +32,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void resendOtp(@Valid @RequestBody ResendOtpRequest request) {
         authService.resendOtp(request);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(authService.login(request));
     }
 }

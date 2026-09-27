@@ -61,7 +61,7 @@ public class OtpService {
 
     @Transactional
     public String resendOtp(User user) {
-
+        logger.debug("Resending OTP for user {}", user.getName());
         Optional<EmailVerificationOtp> latestOtp = otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(user.getId());
 
         // if an OTP generated withing cool down time exist then do not create new OTP
@@ -72,6 +72,7 @@ public class OtpService {
             LocalDateTime currTime = LocalDateTime.now(clock);
 
             if (currTime.isBefore(coolDownEndsAt)) {
+                logger.warn("OTP requested for {} withing cool down period", user.getName());
                 throw new OtpResendCoolDownException("Please wait before requesting another OTP.");
             }
         }
@@ -88,7 +89,7 @@ public class OtpService {
 
     @Transactional(noRollbackFor = {InvalidOtpException.class, OtpAttemptsExceededException.class, OtpExpiredException.class})
     public void verifyOtp(User user, String providedOtp) {
-
+        logger.debug("Verifying OTP for user {}", user.getName());
         // No OTP in DB condition
         EmailVerificationOtp verificationOtp = otpRepository.findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(user.getId())
                 .orElseThrow(() -> new OtpNotFoundException("No active OTP found."));
@@ -96,12 +97,14 @@ public class OtpService {
         // Expired OTP condition
         if(verificationOtp.getExpiresAt().isBefore(LocalDateTime.now())) {
             verificationOtp.markAsUsed();
+            logger.warn("The OTP is expired for {}", user.getName());
             throw new OtpExpiredException("OTP has expired.");
         }
 
         // Max OTP attempt exceeded condition
         if (verificationOtp.getAttemptCount() >= maxAttempts) {
             verificationOtp.markAsUsed();
+            logger.warn("Maximum incorrect OTP attempts reached for user {}", user.getName());
             throw new OtpAttemptsExceededException("Maximum OTP verification attempts exceeded.");
         }
 
@@ -114,6 +117,7 @@ public class OtpService {
                 // so that no additional attempt is allowed
 
                 verificationOtp.markAsUsed();
+                logger.warn("Maximum incorrect OTP attempts reached for user {}", user.getName());
                 throw new OtpAttemptsExceededException("Maximum OTP verification attempts exceeded.");
             }
             throw new InvalidOtpException("Invalid OTP.");

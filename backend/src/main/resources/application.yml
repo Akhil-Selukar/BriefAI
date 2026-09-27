@@ -53,3 +53,7 @@ app:
 
   email:
     from: ${MAIL_FROM}
+
+  jwt:
+    secret: ${JWT_SECRET_KEY}
+    expiration-minutes: 60

@@ -1,5 +1,7 @@
 package com.briefai.exception;
 
+import com.briefai.exception.auth.EmailNotVerifiedException;
+import com.briefai.exception.auth.InvalidCredentialsException;
 import com.briefai.exception.otpExceptions.*;
 import com.briefai.exception.user.UserAlreadyExistsException;
 import com.briefai.exception.user.UserNotFoundException;
@@ -20,13 +22,13 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(UserAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException ex, HttpServletRequest request) {
-        logger.debug("Handling user already exist exception");
+    public ResponseEntity<ErrorResponse> handleUserAlreadyExistsException(UserAlreadyExistsException e, HttpServletRequest request) {
+        logger.error("Handling user already exist exception");
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.CONFLICT.value(),
                 "USER_ALREADY_EXISTS",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -36,10 +38,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        logger.debug("Handling validation error.");
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e, HttpServletRequest request) {
+        logger.error("Handling validation error.");
 
-        String message = ex.getBindingResult()
+        String message = e.getBindingResult()
                 .getFieldErrors()
                 .stream()
                 .map(FieldError::getDefaultMessage)
@@ -60,12 +62,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidOtpException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidOtpException(InvalidOtpException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleInvalidOtpException(InvalidOtpException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "INVALID_OTP",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -75,12 +78,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value(),
                 "USER_NOT_FOUND",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -90,12 +94,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(OtpNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleOtpNotFoundException(OtpNotFoundException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleOtpNotFoundException(OtpNotFoundException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.NOT_FOUND.value(),
                 "NO_OTP_FOUND_IN_SYSTEM",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -105,12 +110,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(EmailAlreadyVerifiedException.class)
-    public ResponseEntity<ErrorResponse> handleEmailAlreadyVerifiedException(EmailAlreadyVerifiedException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyVerifiedException(EmailAlreadyVerifiedException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.CONFLICT.value(),
                 "EMAIL_ALREADY_VERIFIED",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -120,12 +126,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(OtpExpiredException.class)
-    public ResponseEntity<ErrorResponse> handleOtpExpiredException(OtpExpiredException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleOtpExpiredException(OtpExpiredException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.BAD_REQUEST.value(),
                 "OTP_EXPIRED",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -135,12 +142,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(OtpAttemptsExceededException.class)
-    public ResponseEntity<ErrorResponse> handleOtpAttemptsExceededException(OtpAttemptsExceededException ex, HttpServletRequest request){
+    public ResponseEntity<ErrorResponse> handleOtpAttemptsExceededException(OtpAttemptsExceededException e, HttpServletRequest request){
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.TOO_MANY_REQUESTS.value(),
                 "OTP_ATTEMPT_EXHAUSTED",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
@@ -150,17 +158,50 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(OtpResendCoolDownException.class)
-    public ResponseEntity<ErrorResponse> handleOtpResendCoolDownException(OtpResendCoolDownException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleOtpResendCoolDownException(OtpResendCoolDownException e, HttpServletRequest request) {
+        logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.TOO_MANY_REQUESTS.value(),
                 "OTP_RESEND_COOLDOWN",
-                ex.getMessage(),
+                e.getMessage(),
                 request.getRequestURI()
         );
 
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(error);
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotVerifiedException(EmailNotVerifiedException e, HttpServletRequest request) {
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "EMAIL_NOT_VERIFIED",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(error);
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException e, HttpServletRequest request) {
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "INVALID_CREDENTIALS",
+                e.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
                 .body(error);
     }
 }

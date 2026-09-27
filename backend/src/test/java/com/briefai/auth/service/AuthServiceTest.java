@@ -1,14 +1,14 @@
 package com.briefai.auth.service;
 
-import com.briefai.auth.dto.NewUserRequest;
-import com.briefai.auth.dto.NewUserResponse;
-import com.briefai.auth.dto.ResendOtpRequest;
-import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.auth.dto.*;
 import com.briefai.email.service.EmailService;
+import com.briefai.exception.auth.EmailNotVerifiedException;
+import com.briefai.exception.auth.InvalidCredentialsException;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.user.UserAlreadyExistsException;
 import com.briefai.exception.user.UserNotFoundException;
+import com.briefai.security.service.JwtService;
 import com.briefai.user.entity.User;
 import com.briefai.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -39,12 +42,16 @@ class AuthServiceTest {
 
     @Mock
     private EmailService emailService;
+    @Mock
+    private AuthenticationManager authenticationManager;
+    @Mock
+    private JwtService jwtService;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, otpService, emailService);
+        authService = new AuthService(userRepository, passwordEncoder, otpService, emailService, authenticationManager, jwtService);
     }
 
     @Test
@@ -224,5 +231,50 @@ class AuthServiceTest {
 
         verifyNoInteractions(otpService);
         verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void login_shouldSucceedForValidCredentials() {
+        LoginRequest request = new LoginRequest("penny@test.com", "Penny#123");
+
+        User user = new User("Penny", "penny@test.com", "1@asdDFcdBjlipe");
+        user.markEmailAsVerified();
+
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(mock(Authentication.class));
+        when(userRepository.findByEmail("penny@test.com")).thenReturn(Optional.of(user));
+        when(jwtService.generateToken(user)).thenReturn("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3O");
+        when(jwtService.getExpirationSeconds()).thenReturn(3600L);
+
+        assertDoesNotThrow(() -> authService.login(request));
+    }
+
+    @Test
+    void login_shouldThrowInvalidCredentialsForWrongPassword() {
+        LoginRequest request = new LoginRequest("penny@test.com", "Penny123457889");
+
+        when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException("Bad credentials"));
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
+    }
+
+    @Test
+    void login_shouldThrowEmailNotVerifiedExceptionForUnverifiedEmail() {
+
+        LoginRequest request = new LoginRequest("penny@test.com", "Penny#123");
+        User user = new User("Penny", "penny@test.com", "1@asdDFcdBjlipe");
+
+        when(userRepository.findByEmail("penny@test.com")).thenReturn(Optional.of(user));
+        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(mock(Authentication.class));
+
+        assertThrows(EmailNotVerifiedException.class, () -> authService.login(request));
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void login_shouldInvalidCredentialsExceptionForUnregisteredEmail() {
+        LoginRequest request = new LoginRequest("penny@test.com", "Penny#123");
+
+        when(userRepository.findByEmail("penny@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(InvalidCredentialsException.class, () -> authService.login(request));
     }
 }
