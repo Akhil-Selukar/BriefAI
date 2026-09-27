@@ -3,6 +3,7 @@ package com.briefai.auth.service;
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
 import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.email.EmailService;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.otpExceptions.OtpAttemptsExceededException;
@@ -23,11 +24,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final OtpService otpService;
+    private final EmailService emailService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, OtpService otpService) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, OtpService otpService, EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.otpService = otpService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -48,7 +51,9 @@ public class AuthService {
 
         // generate OTP for the user
         String otp = otpService.createOtp(savedUser);
-        // TODO:: Send the otp to user from here
+
+        // Send email to user
+        emailService.sendVerificationOtp(savedUser.getEmail(), savedUser.getName(), otp);
 
         return new NewUserResponse(savedUser.getId(), savedUser.getName(), savedUser.getEmail(), savedUser.isEmailVerified());
     }

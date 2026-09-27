@@ -56,9 +56,7 @@ public class OtpService {
 
     private String generateOtp() {
         int number = SECURE_RANDOM.nextInt(1000000);    // generate secured random number between 0 to 999999
-
-        // TODO :: Remove this (it is just to test OTP verification as email sending is not implemented yet)
-        logger.info("==>> OTP is {}", String.format("%06d", number));
+        
         return String.format("%06d", number);   // make it strictly 6 digit, add padding of 0 to the left if necessary.
     }
 

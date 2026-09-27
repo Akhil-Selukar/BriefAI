@@ -3,6 +3,7 @@ package com.briefai.auth.service;
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
 import com.briefai.auth.dto.VerifyEmailRequest;
+import com.briefai.email.EmailService;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.user.UserAlreadyExistsException;
@@ -35,11 +36,14 @@ class AuthServiceTest {
     @Mock
     private OtpService otpService;
 
+    @Mock
+    private EmailService emailService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, otpService);
+        authService = new AuthService(userRepository, passwordEncoder, otpService, emailService);
     }
 
     @Test
@@ -162,5 +166,20 @@ class AuthServiceTest {
         assertFalse(user.isEmailVerified());
     }
 
+    @Test
+    void register_shouldSendVerificationOtpByEmail() {
+        NewUserRequest request = new NewUserRequest("Penny", "Penny@test.com", "Penny#123");
 
+        when(userRepository.existsByEmail("penny@test.com")).thenReturn(false);
+        when(passwordEncoder.encode("Penny#123")).thenReturn("1@asdDFcdBjlipe");
+
+        User savedUser = new User("Penny", "penny@test.com", "1@asdDFcdBjlipe");
+
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        when(otpService.createOtp(savedUser)).thenReturn("123456");
+
+        authService.register(request);
+
+        verify(emailService).sendVerificationOtp("penny@test.com", "Penny", "123456");
+    }
 }
