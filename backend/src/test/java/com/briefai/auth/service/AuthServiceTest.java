@@ -3,7 +3,7 @@ package com.briefai.auth.service;
 import com.briefai.auth.dto.NewUserRequest;
 import com.briefai.auth.dto.NewUserResponse;
 import com.briefai.auth.dto.VerifyEmailRequest;
-import com.briefai.email.EmailService;
+import com.briefai.email.service.EmailService;
 import com.briefai.exception.otpExceptions.EmailAlreadyVerifiedException;
 import com.briefai.exception.otpExceptions.InvalidOtpException;
 import com.briefai.exception.user.UserAlreadyExistsException;

@@ -1,4 +1,4 @@
-package com.briefai.email;
+package com.briefai.email.service;
 
 public interface EmailService {
     void sendVerificationOtp(String toEmail, String toName, String otp);
