@@ -107,7 +107,7 @@ public class AuthService {
         logger.debug("Logging in to account {}",sanitizedEmail);
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(sanitizedEmail, request.getPassword()));
-        } catch (AuthenticationException ex) {
+        } catch (AuthenticationException e) {
             logger.warn("Login failed : Invalid email or password");
             throw new InvalidCredentialsException("Invalid email or password.");
         }

@@ -57,3 +57,11 @@ app:
   jwt:
     secret: ${JWT_SECRET_KEY}
     expiration-minutes: 60
+
+  storage:
+    local:
+      root-directory: ${LOCAL_STORAGE_ROOT:./uploads}
+
+  document:
+    max-file-size-bytes: ${MAX_ALLOWED_FILE_SIZE:10485760}
+    max-documents-per-user: ${MAX_ALLOWED_FILES_PER_USER:5}

@@ -3,6 +3,7 @@ package com.briefai.exception;
 import com.briefai.exception.auth.EmailNotVerifiedException;
 import com.briefai.exception.auth.InvalidCredentialsException;
 import com.briefai.exception.otpExceptions.*;
+import com.briefai.exception.storage.*;
 import com.briefai.exception.user.UserAlreadyExistsException;
 import com.briefai.exception.user.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -202,6 +203,86 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
+                .body(error);
+    }
+
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException e, HttpServletRequest request) {
+        logger.error("Error occurred while storing file : {}", e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "FILE_STORAGE_ERROR",
+                "An error occurred while storing the file.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(error);
+    }
+
+    @ExceptionHandler(EmptyDocumentException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyDocumentException(EmptyDocumentException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "EMPTY_DOCUMENT",
+                "The uploaded document is empty.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    @ExceptionHandler(DocumentLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentLimitExceededException(DocumentLimitExceededException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "DOCUMENT_LIMIT_EXCEEDED",
+                "you have uploaded maximum allowed number of documents.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+    @ExceptionHandler(UnsupportedDocumentTypeException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedDocumentTypeException(UnsupportedDocumentTypeException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "UNSUPPORTED_DOCUMENT_TYPE",
+                "Only .pdf, .doc and .docx type of documents are allowed.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(error);
+    }
+
+    @ExceptionHandler(DocumentTooLargeException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentTooLargeException(DocumentTooLargeException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONTENT_TOO_LARGE.value(),
+                "DOCUMENT_TOO_LARGE",
+                "uploaded document is too large.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONTENT_TOO_LARGE)
                 .body(error);
     }
 }

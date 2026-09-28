@@ -1,0 +1,98 @@
+package com.briefai.document.service;
+
+import com.briefai.document.dto.DocumentResponse;
+import com.briefai.document.entity.Document;
+import com.briefai.document.repository.DocumentRepository;
+import com.briefai.exception.storage.*;
+import com.briefai.exception.user.UserNotFoundException;
+import com.briefai.storage.service.FileStorageService;
+import com.briefai.user.entity.User;
+import com.briefai.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.Set;
+
+@Service
+public class DocumentService {
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of("application/pdf", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+    private final DocumentRepository documentRepository;
+    private final UserRepository userRepository;
+    private final FileStorageService fileStorageService;
+
+    private final long maxFileSizeBytes;
+    private final long maxDocumentsPerUser;
+
+    public DocumentService(DocumentRepository documentRepository, UserRepository userRepository, FileStorageService fileStorageService,
+                           @Value("${app.document.max-file-size-bytes}") long maxFileSizeBytes,
+                           @Value("${app.document.max-documents-per-user}") long maxDocumentsPerUser) {
+        this.documentRepository = documentRepository;
+        this.userRepository = userRepository;
+        this.fileStorageService = fileStorageService;
+        this.maxFileSizeBytes = maxFileSizeBytes;
+        this.maxDocumentsPerUser = maxDocumentsPerUser;
+    }
+
+    public DocumentResponse uploadDocument(Long userId, MultipartFile file) {
+        validateFile(userId, file);
+
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            throw new UserNotFoundException("user not found.");
+        }
+
+        String storageKey = null;
+
+        try {
+            storageKey = fileStorageService.store(file.getInputStream(), file.getOriginalFilename(), userId);
+
+            Document document = new Document(user, file.getOriginalFilename(), storageKey, file.getContentType(), file.getSize());
+            Document saved = documentRepository.save(document);
+
+            return toResponse(saved);
+
+        } catch (IOException e) {
+            throw new FileStorageException("Could not read uploaded file.", e);
+        } catch (RuntimeException e) {
+            // In case of document is successfully stored but it's metadata is not stored in DB then the document will be
+            // orphan, so to avoid this we need to delete the document.
+            if (storageKey != null) {
+                try {
+                    fileStorageService.delete(storageKey);
+                } catch (RuntimeException ex) {
+                    e.addSuppressed(ex);
+                }
+            }
+            throw e;
+        }
+    }
+
+    private void validateFile(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new EmptyDocumentException("Document must not be empty.");
+        }
+
+        if (file.getSize() > maxFileSizeBytes) {
+            throw new DocumentTooLargeException("Document must not exceed 10 mb.");
+        }
+
+        if (!ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
+            throw new UnsupportedDocumentTypeException("Only PDF, DOC, and DOCX documents are supported.");
+        }
+
+        long existingDocuments = documentRepository.countByUserId(userId);
+
+        if (existingDocuments >= maxDocumentsPerUser) {
+            throw new DocumentLimitExceededException("Maximum document limit reached.");
+        }
+    }
+
+    private DocumentResponse toResponse(Document document) {
+        return new DocumentResponse(document.getId(), document.getOriginalName(), document.getContentType(), document.getSizeBytes(),
+                document.getPageCount(), document.getStatus(), document.getCreatedAt());
+    }
+}
