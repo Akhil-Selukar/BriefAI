@@ -96,4 +96,32 @@ public class Document {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public void markProcessing() {
+        if (status != DocumentStatus.UPLOADED) {
+            throw new IllegalStateException("Only uploaded documents can be processed.");
+        }
+
+        status = DocumentStatus.PROCESSING;
+        updatedAt = LocalDateTime.now();
+    }
+
+    public void markFailed() {
+        if (status != DocumentStatus.PROCESSING) {
+            throw new IllegalStateException("Only processing documents can fail.");
+        }
+
+        status = DocumentStatus.FAILED;
+        updatedAt = LocalDateTime.now();
+    }
+
+    public void markReady(int pageCount) {
+        if (status != DocumentStatus.PROCESSING) {
+            throw new IllegalStateException("Only processing documents can be ready.");
+        }
+
+        this.pageCount = pageCount;
+        status = DocumentStatus.READY;
+        updatedAt = LocalDateTime.now();
+    }
 }

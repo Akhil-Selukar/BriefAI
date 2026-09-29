@@ -2,6 +2,7 @@ package com.briefai.exception;
 
 import com.briefai.exception.auth.EmailNotVerifiedException;
 import com.briefai.exception.auth.InvalidCredentialsException;
+import com.briefai.exception.storage.document.DocumentNotFoundException;
 import com.briefai.exception.otpExceptions.*;
 import com.briefai.exception.storage.*;
 import com.briefai.exception.user.UserAlreadyExistsException;
@@ -299,6 +300,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.PRECONDITION_FAILED.value(),
+                "DOCUMENT_PROCESSING_FAILED",
+                "error while processing document",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.PRECONDITION_FAILED)
                 .body(error);
     }
 }

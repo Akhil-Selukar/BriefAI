@@ -60,6 +60,18 @@ public class LocalFileStorageService implements FileStorageService {
         }
     }
 
+    @Override
+    public InputStream open(String storageKey) {
+        Path target = rootDirectory.resolve(storageKey).normalize();
+        ensureInsideRoot(target);
+
+        try {
+            return Files.newInputStream(target);
+        } catch (IOException e) {
+            throw new FileStorageException("Could not open stored file.", e);
+        }
+    }
+
     private String extractExtension(String filename) {
         if (filename == null) {
             return "";

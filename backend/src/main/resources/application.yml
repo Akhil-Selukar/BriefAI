@@ -65,3 +65,5 @@ app:
   document:
     max-file-size-bytes: ${MAX_ALLOWED_FILE_SIZE:10485760}
     max-documents-per-user: ${MAX_ALLOWED_FILES_PER_USER:5}
+    chunk-size-words: ${WORDS_PER_CHUNK:200}
+    chunk-overlap-words: ${CHUNK_OVERLAP_WORDS:40}

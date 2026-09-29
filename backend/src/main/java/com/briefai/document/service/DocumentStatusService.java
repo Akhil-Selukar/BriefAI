@@ -1,0 +1,37 @@
+package com.briefai.document.service;
+
+import com.briefai.document.entity.Document;
+import com.briefai.document.entity.DocumentStatus;
+import com.briefai.document.repository.DocumentRepository;
+import com.briefai.exception.storage.document.DocumentNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+
+@Service
+public class DocumentStatusService {
+    private final DocumentRepository documentRepository;
+
+    public DocumentStatusService(DocumentRepository documentRepository) {
+        this.documentRepository = documentRepository;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void startProcessing(Long documentId) {
+        int updated = documentRepository.claimForProcessing(documentId, DocumentStatus.UPLOADED,
+                DocumentStatus.PROCESSING, LocalDateTime.now());
+
+        if (updated != 1) {
+            throw new IllegalStateException("Document is not available for processing.");
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void markFailed(Long documentId) {
+        Document document = documentRepository.findById(documentId).orElseThrow(() -> new DocumentNotFoundException("Document not found."));
+
+        document.markFailed();
+    }
+}
