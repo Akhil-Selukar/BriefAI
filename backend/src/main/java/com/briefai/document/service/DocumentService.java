@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 @Service
@@ -69,6 +70,36 @@ public class DocumentService {
             }
             throw e;
         }
+    }
+
+    public List<DocumentResponse> getDocuments(Long userId) {
+        return documentRepository
+                .findAllByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public DocumentResponse getDocument(Long userId, Long documentId) {
+        Document document = documentRepository.findByIdAndUserId(documentId, userId).orElse(null);
+
+        if(document == null) {
+            throw new DocumentNotFoundException("Document not found");
+        }
+
+        return toResponse(document);
+    }
+
+    public void deleteDocument(Long userId, Long documentId) {
+        Document document = documentRepository.findByIdAndUserId(documentId, userId).orElse(null);
+
+        if(document == null) {
+            throw new DocumentNotFoundException("Document not found");
+        }
+
+        fileStorageService.delete(document.getStorageKey());
+
+        documentRepository.delete(document);
     }
 
     private void validateFile(Long userId, MultipartFile file) {

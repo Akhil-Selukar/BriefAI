@@ -19,6 +19,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -172,4 +173,67 @@ class DocumentServiceTest {
         assertSame(databaseFailure, thrown);
         verify(fileStorageService).delete("1/123d-bdfgf-54s.pdf");
     }
+
+    @Test
+    void getDocuments_shouldReturnOnlyUserDocuments() {
+
+        Document document1 = new Document(user, "test1.pdf", "1/test1.pdf", "application/pdf", 100L);
+        Document document2 = new Document(user, "test2.pdf", "1/two.pdf", "application/pdf", 200L);
+        ReflectionTestUtils.setField(document1, "id", 1L);
+        ReflectionTestUtils.setField(document2, "id", 2L);
+
+        when(documentRepository.findAllByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(document2, document1));
+
+        List<DocumentResponse> result = documentService.getDocuments(1L);
+
+        assertEquals(2, result.size());
+        assertEquals(2L, result.get(0).getId());
+        assertEquals(1L, result.get(1).getId());
+        verify(documentRepository).findAllByUserIdOrderByCreatedAtDesc(1L);
+    }
+
+    @Test
+    void getDocument_shouldReturnOwnedDocument() {
+
+        Document document = new Document(user, "test1.pdf", "1/research.pdf", "application/pdf", 100L);
+        ReflectionTestUtils.setField(document, "id", 100L);
+
+        when(documentRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(document));
+        DocumentResponse response = documentService.getDocument(1L, 100L);
+
+        assertEquals(100L, response.getId());
+        assertEquals("test1.pdf", response.getOriginalName());
+
+        verify(documentRepository).findByIdAndUserId(100L, 1L);
+    }
+
+    @Test
+    void getDocument_shouldThrowErrorWhenDocumentDoesNotBelongToUser() {
+        when(documentRepository.findByIdAndUserId(200L, 1L)).thenReturn(Optional.empty());
+        assertThrows(DocumentNotFoundException.class, () -> documentService.getDocument(1L, 200L));
+    }
+
+    @Test
+    void deleteDocument_shouldDeleteOwnedDocumentAndStoredFile() {
+        Document document = new Document(user, "test1.pdf", "1/generated.pdf", "application/pdf", 100L);
+        ReflectionTestUtils.setField(document, "id", 100L);
+
+        when(documentRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.of(document));
+
+        documentService.deleteDocument(1L, 100L);
+
+        verify(fileStorageService).delete("1/generated.pdf");
+        verify(documentRepository).delete(document);
+    }
+
+    @Test
+    void deleteDocument_shouldThrowWhenDocumentDoesNotBelongToUser() {
+        when(documentRepository.findByIdAndUserId(200L, 1L)).thenReturn(Optional.empty());
+
+        assertThrows(DocumentNotFoundException.class, () -> documentService.deleteDocument(1L, 200L));
+        verifyNoInteractions(fileStorageService);
+        verify(documentRepository, never()).delete(any());
+    }
+
+
 }

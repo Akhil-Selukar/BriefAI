@@ -285,4 +285,20 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONTENT_TOO_LARGE)
                 .body(error);
     }
+
+    @ExceptionHandler(DocumentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentNotFoundException(DocumentNotFoundException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "DOCUMENT_NOT_FOUND",
+                "Document not found",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(error);
+    }
 }
