@@ -4,6 +4,7 @@ import com.briefai.exception.auth.EmailNotVerifiedException;
 import com.briefai.exception.auth.InvalidCredentialsException;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.otpExceptions.*;
+import com.briefai.exception.rag.ChatModelResponseException;
 import com.briefai.exception.storage.*;
 import com.briefai.exception.document.IllegalDocumentStateException;
 import com.briefai.exception.user.UserAlreadyExistsException;
@@ -333,6 +334,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
+                .body(error);
+    }
+
+    @ExceptionHandler(ChatModelResponseException.class)
+    public ResponseEntity<ErrorResponse> handleChatModelResponseException(ChatModelResponseException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NO_CONTENT.value(),
+                "CHAT_MODEL_DID_NOT_RESPOND",
+                "Chat model did not respond, please try again",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NO_CONTENT)
                 .body(error);
     }
 }
