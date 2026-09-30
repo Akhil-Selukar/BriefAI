@@ -2,7 +2,7 @@ package com.briefai.document.parser;
 
 import com.briefai.document.parser.dto.ParsedDocument;
 import com.briefai.document.parser.dto.ParsedPage;
-import com.briefai.exception.storage.document.DocumentParsingException;
+import com.briefai.exception.document.DocumentParsingException;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;

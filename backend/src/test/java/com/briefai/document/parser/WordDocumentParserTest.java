@@ -1,7 +1,7 @@
 package com.briefai.document.parser;
 
 import com.briefai.document.parser.dto.ParsedDocument;
-import com.briefai.exception.storage.document.DocumentParsingException;
+import com.briefai.exception.document.DocumentParsingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

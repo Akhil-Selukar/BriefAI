@@ -2,9 +2,10 @@ package com.briefai.exception;
 
 import com.briefai.exception.auth.EmailNotVerifiedException;
 import com.briefai.exception.auth.InvalidCredentialsException;
-import com.briefai.exception.storage.document.DocumentNotFoundException;
+import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.otpExceptions.*;
 import com.briefai.exception.storage.*;
+import com.briefai.exception.document.IllegalDocumentStateException;
 import com.briefai.exception.user.UserAlreadyExistsException;
 import com.briefai.exception.user.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -303,7 +304,7 @@ public class GlobalExceptionHandler {
                 .body(error);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
+    @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
     public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException e, HttpServletRequest request){
         logger.error(e.getMessage());
         ErrorResponse error = new ErrorResponse(
@@ -316,6 +317,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.PRECONDITION_FAILED)
+                .body(error);
+    }
+
+    @ExceptionHandler(IllegalDocumentStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalDocumentStateException(IllegalDocumentStateException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                "DOCUMENT_NOT_PROCESSABLE",
+                "Document is not available for processing",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
                 .body(error);
     }
 }

@@ -4,7 +4,10 @@ import com.briefai.auth.dto.AuthenticatedUser;
 import com.briefai.config.SecurityConfig;
 import com.briefai.document.dto.DocumentResponse;
 import com.briefai.document.entity.DocumentStatus;
+import com.briefai.document.service.DocumentIngestionService;
 import com.briefai.document.service.DocumentService;
+import com.briefai.exception.document.DocumentNotFoundException;
+import com.briefai.exception.document.IllegalDocumentStateException;
 import com.briefai.security.service.JwtService;
 import com.briefai.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -27,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,6 +48,9 @@ class DocumentControllerTest {
 
     @MockitoBean
     private DocumentService documentService;
+
+    @MockitoBean
+    private DocumentIngestionService ingestionService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -122,6 +129,49 @@ class DocumentControllerTest {
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(documentService);
+    }
+
+    @Test
+    void processDocument_shouldProcessAuthenticatedUserDocument() throws Exception {
+        mockMvc.perform(post("/api/v1/documents/100/process")
+                        .with(authentication(getAuthenticatedUser()))
+                )
+                .andExpect(status().isOk());
+        verify(documentService, times(2)).getDocument(1L, 100L);
+        verify(ingestionService).process(100L);
+    }
+
+    @Test
+    void processDocument_shouldReturn401WithoutAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/documents/100/process"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(documentService);
+        verifyNoInteractions(ingestionService);
+    }
+
+    @Test
+    void processDocument_should404ForOtherUsersDocument() throws Exception {
+        doThrow(new DocumentNotFoundException("Document not found")).when(documentService).getDocument(1L, 100L);
+
+        mockMvc.perform(post("/api/v1/documents/100/process")
+                        .with(authentication(getAuthenticatedUser()))
+                )
+                .andExpect(status().isNotFound());
+
+        verify(documentService, times(1)).getDocument(1L, 100L);
+        verifyNoInteractions(ingestionService);
+    }
+
+    @Test
+    void processDocument_shouldReturn409ForAlreadyProcessedDocuments() throws Exception {
+        doThrow(new IllegalDocumentStateException("Document not available for processing")).when(ingestionService).process(100L);
+        mockMvc.perform(post("/api/v1/documents/100/process")
+                        .with(authentication(getAuthenticatedUser()))
+                )
+                .andExpect(status().isConflict());
+        verify(documentService, times(1)).getDocument(1L, 100L);
+        verify(ingestionService).process(100L);
     }
 
     private UsernamePasswordAuthenticationToken getAuthenticatedUser() {

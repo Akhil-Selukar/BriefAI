@@ -1,4 +1,4 @@
-package com.briefai.exception.storage;
+package com.briefai.storage.service;
 
 import com.briefai.storage.service.LocalFileStorageService;
 import org.junit.jupiter.api.BeforeEach;

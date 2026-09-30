@@ -4,7 +4,7 @@ import com.briefai.document.dto.DocumentResponse;
 import com.briefai.document.entity.Document;
 import com.briefai.document.entity.DocumentStatus;
 import com.briefai.document.repository.DocumentRepository;
-import com.briefai.exception.storage.document.DocumentNotFoundException;
+import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.storage.*;
 import com.briefai.exception.user.UserNotFoundException;
 import com.briefai.storage.service.FileStorageService;

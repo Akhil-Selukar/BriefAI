@@ -1,4 +1,4 @@
-package com.briefai.exception.storage.document;
+package com.briefai.exception.document;
 
 public class DocumentParsingException extends RuntimeException{
 

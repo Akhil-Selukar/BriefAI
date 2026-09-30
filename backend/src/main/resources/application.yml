@@ -19,6 +19,10 @@ spring:
     vectorstore:
       pgvector:
         initialize-schema: false
+    ollama:
+      base-url: http://localhost:11434
+      embedding:
+        model: nomic-embed-text
 
   mail:
     host: ${MAIL_HOST}

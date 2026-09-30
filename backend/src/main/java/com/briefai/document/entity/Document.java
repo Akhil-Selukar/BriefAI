@@ -102,8 +102,8 @@ public class Document {
             throw new IllegalStateException("Only uploaded documents can be processed.");
         }
 
-        status = DocumentStatus.PROCESSING;
-        updatedAt = LocalDateTime.now();
+        this.status = DocumentStatus.PROCESSING;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void markFailed() {
@@ -111,17 +111,17 @@ public class Document {
             throw new IllegalStateException("Only processing documents can fail.");
         }
 
-        status = DocumentStatus.FAILED;
-        updatedAt = LocalDateTime.now();
+        this.status = DocumentStatus.FAILED;
+        this.updatedAt = LocalDateTime.now();
     }
 
-    public void markReady(int pageCount) {
+    public void markReady(Integer pageCount) {
         if (status != DocumentStatus.PROCESSING) {
             throw new IllegalStateException("Only processing documents can be ready.");
         }
 
         this.pageCount = pageCount;
-        status = DocumentStatus.READY;
-        updatedAt = LocalDateTime.now();
+        this.status = DocumentStatus.READY;
+        this.updatedAt = LocalDateTime.now();
     }
 }

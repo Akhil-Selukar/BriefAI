@@ -3,7 +3,8 @@ package com.briefai.document.service;
 import com.briefai.document.entity.Document;
 import com.briefai.document.entity.DocumentStatus;
 import com.briefai.document.repository.DocumentRepository;
-import com.briefai.exception.storage.document.DocumentNotFoundException;
+import com.briefai.exception.document.DocumentNotFoundException;
+import com.briefai.exception.document.IllegalDocumentStateException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,7 @@ public class DocumentStatusService {
                 DocumentStatus.PROCESSING, LocalDateTime.now());
 
         if (updated != 1) {
-            throw new IllegalStateException("Document is not available for processing.");
+            throw new IllegalDocumentStateException("Document is not available for processing.");
         }
     }
 
