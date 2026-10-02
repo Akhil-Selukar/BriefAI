@@ -3,7 +3,6 @@ package com.briefai.rag.controller;
 import com.briefai.auth.dto.AuthenticatedUser;
 import com.briefai.config.SecurityConfig;
 import com.briefai.rag.dto.RagResponse;
-import com.briefai.rag.dto.RagSource;
 import com.briefai.rag.service.RagService;
 import com.briefai.security.service.JwtService;
 import com.briefai.user.repository.UserRepository;
@@ -48,36 +47,49 @@ class ChatControllerTest {
     }
 
     @Test
-    void ask_shouldPassAuthenticatedUserIdToRagService() throws Exception {
-
-        Long userId = 1L;
-        String question = "What is rag?";
-
-        AuthenticatedUser principal = new AuthenticatedUser(userId, "penny@test.com");
-
-        var authentication = new UsernamePasswordAuthenticationToken(principal, null, null);
-
-        RagResponse response = new RagResponse("RAG combines retrieval and generation.",
-                List.of(new RagSource(1, 100L, "test.pdf", 3, 0, 0.95)));
-
-        when(ragService.answer(userId, question)).thenReturn(response);
+    void ask_shouldUseConversationAwareRagWhenConversationIdProvided() throws Exception {
+        RagResponse response = new RagResponse("Document grounding explanation [1]", List.of());
+        when(ragService.answer(1L, 100L, "Explain the second point.")).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/chat/ask")
-                        .with(authentication(authentication))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "question": "What is rag?"
-                                }
-                                """)
+                .with(authentication(getAuthenticatedUser()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                       {
+                            "conversationId": 100,
+                            "question": "Explain the second point."
+                       }
+                """)
                 )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.answer").value("RAG combines retrieval and generation."))
-                .andExpect(jsonPath("$.sources[0].documentId").value(100))
-                .andExpect(jsonPath("$.sources[0].documentName").value("test.pdf"))
-                .andExpect(jsonPath("$.sources[0].pageNumber").value(3));
+                .andExpect(jsonPath("$.answer").value("Document grounding explanation [1]"));
 
-        verify(ragService).answer(1L, question);
-        verifyNoMoreInteractions(ragService);
+        verify(ragService).answer(1L, 100L, "Explain the second point.");
+        verify(ragService, never()).answer(anyLong(), anyString());
+    }
+
+    @Test
+    void ask_shouldUseStatelessRagWhenConversationIdMissing() throws Exception {
+        RagResponse response = new RagResponse("RAG combines retrieval and generation. [1]", List.of());
+        when(ragService.answer(1L, "What is RAG?")).thenReturn(response);
+
+        mockMvc.perform(post("/api/v1/chat/ask")
+                .with(authentication(getAuthenticatedUser()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "question": "What is RAG?"
+                        }
+                """)
+                )
+                .andExpect(status().isOk());
+
+        verify(ragService).answer(1L, "What is RAG?");
+        verify(ragService, never()).answer(anyLong(), anyLong(), anyString());
+    }
+
+    private UsernamePasswordAuthenticationToken getAuthenticatedUser() {
+        AuthenticatedUser principal = new AuthenticatedUser(1L, "penny@test.com");
+        return new UsernamePasswordAuthenticationToken(principal, null, null);
     }
 }

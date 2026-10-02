@@ -1,5 +1,9 @@
 package com.briefai.rag.service;
 
+import com.briefai.conversation.entity.ChatMessage;
+import com.briefai.conversation.entity.ChatMessageRole;
+import com.briefai.conversation.service.ConversationQueryService;
+import com.briefai.conversation.service.ConversationService;
 import com.briefai.document.retrieval.dto.RetrievedChunk;
 import com.briefai.document.retrieval.service.DocumentRetrievalService;
 import com.briefai.exception.rag.ChatModelResponseException;
@@ -35,19 +39,38 @@ public class RagService {
 
     private final DocumentRetrievalService retrievalService;
     private final ChatModel chatModel;
+    private final ConversationService conversationService;
+    private final ConversationQueryService conversationQueryService;
 
-    public RagService(DocumentRetrievalService retrievalService, ChatModel chatModel) {
+    public RagService(DocumentRetrievalService retrievalService, ChatModel chatModel, ConversationService conversationService, ConversationQueryService conversationQueryService) {
         this.retrievalService = retrievalService;
         this.chatModel = chatModel;
+        this.conversationService = conversationService;
+        this.conversationQueryService = conversationQueryService;
     }
 
+    // answer without any prior conversation awareness
     public RagResponse answer(Long userId, String question) {
-        if (question == null || question.isBlank()) {
-            throw new IllegalArgumentException("Question must not be empty.");
-        }
+        String validatedQue = validateQuestion(question);
 
-        String cleanQuestion = question.trim();
-        List<RetrievedChunk> chunks = retrievalService.search(userId, cleanQuestion);
+        return generateAnswer(userId, validatedQue, validatedQue, List.of());
+    }
+
+    // answer with taking into consideration prior conversation history
+    public RagResponse answer(Long userId, Long conversationId, String question) {
+        String validatedQue = validateQuestion(question);
+
+        List<ChatMessage> history = conversationService.getRecentMessages(userId, conversationId);
+        String retrievalQuestion = conversationQueryService.rewriteQuestion(history, validatedQue);
+
+        RagResponse response = generateAnswer(userId, validatedQue, retrievalQuestion, history);
+
+        conversationService.addExchange(userId, conversationId, validatedQue, response.getAnswer());
+        return response;
+    }
+
+    private RagResponse generateAnswer(Long userId, String originalQuestion, String retrievalQuestion, List<ChatMessage> history) {
+        List<RetrievedChunk> chunks = retrievalService.search(userId, retrievalQuestion);
 
         if (chunks.isEmpty()) {
             return new RagResponse("I couldn't find relevant information in your uploaded documents.", List.of());
@@ -80,16 +103,26 @@ public class RagService {
                     chunk.getPageNumber(), chunk.getChunkIndex(), chunk.getSimilarity()));
         }
 
+        String conversationHistory = buildConversationHistory(history);
         String userPrompt = """
+                Conversation history:
+                %s
+
                 Document content:
                 %s
 
-                Question:
+                User's question:
                 %s
 
-                Answer the question using only the document content above.
-                Include source-number citations where appropriate.
-                """.formatted(context, cleanQuestion);
+                Answer the user's question using only the
+                document content above.
+
+                Use the conversation history only to understand
+                the context of the question.
+
+                Include source-number citations such as [1]
+                where appropriate.
+                """.formatted(conversationHistory, context, originalQuestion);
 
         Prompt prompt = new Prompt(List.of(new SystemMessage(SYSTEM_INSTRUCTIONS), new UserMessage(userPrompt)));
 
@@ -101,5 +134,27 @@ public class RagService {
         }
 
         return new RagResponse(answer.trim(), List.copyOf(sources));
+    }
+
+    private String buildConversationHistory(List<ChatMessage> history) {
+        if (history == null || history.isEmpty()) {
+            return "No previous conversation";
+        }
+
+        StringBuilder result = new StringBuilder();
+
+        for (ChatMessage message : history) {
+            result.append(message.getRole() == ChatMessageRole.USER ? "User: " : "Assistant: ");
+            result.append(message.getContent()).append("\n");
+        }
+
+        return result.toString().trim();
+    }
+
+    private String validateQuestion(String question) {
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("Question must not be empty.");
+        }
+        return question.trim();
     }
 }

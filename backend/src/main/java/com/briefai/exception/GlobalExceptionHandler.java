@@ -2,6 +2,7 @@ package com.briefai.exception;
 
 import com.briefai.exception.auth.EmailNotVerifiedException;
 import com.briefai.exception.auth.InvalidCredentialsException;
+import com.briefai.exception.conversation.ConversationNotFoundException;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.otpExceptions.*;
 import com.briefai.exception.rag.ChatModelResponseException;
@@ -350,6 +351,22 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NO_CONTENT)
+                .body(error);
+    }
+
+    @ExceptionHandler(ConversationNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleConversationNotFoundException(ConversationNotFoundException e, HttpServletRequest request){
+        logger.error(e.getMessage());
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "CONVERSATION_NOT_FOUND",
+                "Conversation not found.",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(error);
     }
 }

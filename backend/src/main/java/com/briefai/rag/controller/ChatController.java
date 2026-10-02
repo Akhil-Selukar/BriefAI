@@ -23,6 +23,10 @@ public class ChatController {
 
     @PostMapping("/ask")
     public RagResponse ask(@AuthenticationPrincipal AuthenticatedUser user, @Valid @RequestBody AskQuestionRequest request) {
-        return ragService.answer(user.getId(), request.getQuestion());
+        if (request.getConversationId() == null) {
+            return ragService.answer(user.getId(), request.getQuestion());
+        }
+
+        return ragService.answer(user.getId(), request.getConversationId(), request.getQuestion());
     }
 }
