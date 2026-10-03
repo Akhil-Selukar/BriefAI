@@ -7,8 +7,11 @@ import com.briefai.conversation.service.ConversationService;
 import com.briefai.document.retrieval.dto.RetrievedChunk;
 import com.briefai.document.retrieval.service.DocumentRetrievalService;
 import com.briefai.exception.rag.ChatModelResponseException;
+import com.briefai.rag.controller.ChatController;
 import com.briefai.rag.dto.RagResponse;
 import com.briefai.rag.dto.RagSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -21,6 +24,7 @@ import java.util.List;
 
 @Service
 public class RagService {
+    private static final Logger logger = LoggerFactory.getLogger(RagService.class);
 
     private static final String SYSTEM_INSTRUCTIONS = """
             You are BriefAI, a document question-answering assistant.
@@ -51,6 +55,7 @@ public class RagService {
 
     // answer without any prior conversation awareness
     public RagResponse answer(Long userId, String question) {
+        logger.debug("Working on question without conversation and prior context");
         String validatedQue = validateQuestion(question);
 
         return generateAnswer(userId, validatedQue, validatedQue, List.of());
@@ -58,6 +63,7 @@ public class RagService {
 
     // answer with taking into consideration prior conversation history
     public RagResponse answer(Long userId, Long conversationId, String question) {
+        logger.debug("Working on question with conversation and prior context");
         String validatedQue = validateQuestion(question);
 
         List<ChatMessage> history = conversationService.getRecentMessages(userId, conversationId);
@@ -65,7 +71,7 @@ public class RagService {
 
         RagResponse response = generateAnswer(userId, validatedQue, retrievalQuestion, history);
 
-        conversationService.addExchange(userId, conversationId, validatedQue, response.getAnswer());
+        conversationService.addExchange(userId, conversationId, validatedQue, response.getAnswer(), response.getSources());
         return response;
     }
 
@@ -78,7 +84,7 @@ public class RagService {
 
         StringBuilder context = new StringBuilder();
         List<RagSource> sources = new ArrayList<>();
-
+        logger.debug("Generating context aware version of question from user");
         for (int i = 0; i < chunks.size(); i++) {
             RetrievedChunk chunk = chunks.get(i);
             int sourceNumber = i + 1;
@@ -130,6 +136,7 @@ public class RagService {
         String answer = response.getResult().getOutput().getText();
 
         if (answer == null || answer.isBlank()) {
+            logger.error("Chat model returned empty response.");
             throw new ChatModelResponseException("The chat model returned an empty answer.");
         }
 
@@ -137,6 +144,7 @@ public class RagService {
     }
 
     private String buildConversationHistory(List<ChatMessage> history) {
+        logger.debug("Generating conversation history");
         if (history == null || history.isEmpty()) {
             return "No previous conversation";
         }
@@ -153,6 +161,7 @@ public class RagService {
 
     private String validateQuestion(String question) {
         if (question == null || question.isBlank()) {
+            logger.warn("Question is empty");
             throw new IllegalArgumentException("Question must not be empty.");
         }
         return question.trim();

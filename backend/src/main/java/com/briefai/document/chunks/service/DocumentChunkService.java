@@ -3,6 +3,8 @@ package com.briefai.document.chunks.service;
 import com.briefai.document.chunks.dto.DocumentChunk;
 import com.briefai.document.parser.dto.ParsedDocument;
 import com.briefai.document.parser.dto.ParsedPage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,7 @@ import java.util.List;
 
 @Service
 public class DocumentChunkService {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentChunkService.class);
     private final int chunkSize;
     private final int overlap;
 
@@ -24,6 +27,7 @@ public class DocumentChunkService {
     }
 
     public List<DocumentChunk> chunk(Long documentId, Long userId, ParsedDocument parsedDocument) {
+        logger.debug("Creating chunks of document.");
         List<DocumentChunk> chunks = new ArrayList<>();
         for(ParsedPage page : parsedDocument.getPages()) {  // for all pages in the document
             if (page == null || page.getText() == null || page.getText().isBlank()) {

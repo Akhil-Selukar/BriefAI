@@ -4,6 +4,8 @@ import com.briefai.auth.dto.AuthenticatedUser;
 import com.briefai.document.dto.DocumentResponse;
 import com.briefai.document.service.DocumentIngestionService;
 import com.briefai.document.service.DocumentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -15,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/documents")
 public class DocumentController {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
     private final DocumentService documentService;
     private final DocumentIngestionService ingestionService;
 
@@ -26,22 +29,26 @@ public class DocumentController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public DocumentResponse uploadDocument(@AuthenticationPrincipal AuthenticatedUser currentUser, @RequestPart("file") MultipartFile file) {
+        logger.debug("Request received to upload a document");
         return documentService.uploadDocument(currentUser.getId(), file);
     }
 
     @GetMapping
     public List<DocumentResponse> getDocuments(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        logger.debug("Request received to get list of documents uploaded by the user");
         return documentService.getDocuments(currentUser.getId());
     }
 
     @GetMapping("/{documentId}")
     public DocumentResponse getDocument(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long documentId) {
+        logger.debug("Request received to get document based on document id");
         return documentService.getDocument(currentUser.getId(), documentId);
     }
 
     @DeleteMapping("/{documentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteDocument(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long documentId) {
+        logger.debug("Request received to delete document with id {}", documentId);
         documentService.deleteDocument(currentUser.getId(), documentId);
     }
 
@@ -49,6 +56,7 @@ public class DocumentController {
     public DocumentResponse processDocument(@AuthenticationPrincipal AuthenticatedUser currentUser, @PathVariable Long documentId) {
         // Reject non existing documents and documents owned by another user before starting ingestion.
         // this getDocument call throws document not found in case of document is not owned by current user or non existing document id
+        logger.debug("Request received to start processing document with id {}", documentId);
         documentService.getDocument(currentUser.getId(), documentId);
 
         ingestionService.process(documentId);

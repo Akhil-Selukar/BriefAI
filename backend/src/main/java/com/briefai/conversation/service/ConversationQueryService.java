@@ -1,6 +1,8 @@
 package com.briefai.conversation.service;
 
 import com.briefai.conversation.entity.ChatMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -12,6 +14,7 @@ import java.util.List;
 @Service
 public class ConversationQueryService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConversationQueryService.class);
     private final ChatModel chatModel;
 
     public ConversationQueryService(ChatModel chatModel) {
@@ -19,7 +22,9 @@ public class ConversationQueryService {
     }
 
     public String rewriteQuestion(List<ChatMessage> history, String question) {
+        logger.debug("Rewriting the user question based on previous conversation context");
         if (history == null || history.isEmpty()) {
+            logger.warn("No previous conversation history found");
             return question;
         }
 
@@ -62,7 +67,7 @@ public class ConversationQueryService {
         if (rewrittenQue == null || rewrittenQue.isBlank()) {
             return question;
         }
-
+        logger.debug("Wrote the user question as per prior conversation history");
         return rewrittenQue.trim();
     }
 }

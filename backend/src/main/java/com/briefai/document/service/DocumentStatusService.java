@@ -5,6 +5,8 @@ import com.briefai.document.entity.DocumentStatus;
 import com.briefai.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.document.IllegalDocumentStateException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,7 @@ import java.time.LocalDateTime;
 
 @Service
 public class DocumentStatusService {
+    private static final Logger logger = LoggerFactory.getLogger(DocumentStatusService.class);
     private final DocumentRepository documentRepository;
 
     public DocumentStatusService(DocumentRepository documentRepository) {
@@ -25,8 +28,10 @@ public class DocumentStatusService {
                 DocumentStatus.PROCESSING, LocalDateTime.now());
 
         if (updated != 1) {
+            logger.warn("Document is not available for processing");
             throw new IllegalDocumentStateException("Document is not available for processing.");
         }
+        logger.debug("Document processed.");
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)

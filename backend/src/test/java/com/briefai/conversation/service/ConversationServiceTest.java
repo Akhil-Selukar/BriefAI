@@ -4,11 +4,16 @@ import com.briefai.conversation.dto.ChatMessageResponse;
 import com.briefai.conversation.dto.ConversationResponse;
 import com.briefai.conversation.entity.ChatMessage;
 import com.briefai.conversation.entity.ChatMessageRole;
+import com.briefai.conversation.entity.ChatMessageSource;
 import com.briefai.conversation.entity.Conversation;
 import com.briefai.conversation.repository.ChatMessageRepository;
+import com.briefai.conversation.repository.ChatMessageSourceRepository;
 import com.briefai.conversation.repository.ConversationRepository;
+import com.briefai.document.entity.Document;
+import com.briefai.document.repository.DocumentRepository;
 import com.briefai.exception.conversation.ConversationNotFoundException;
 import com.briefai.exception.user.UserNotFoundException;
+import com.briefai.rag.dto.RagSource;
 import com.briefai.user.entity.User;
 import com.briefai.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,12 +41,16 @@ class ConversationServiceTest {
     private ChatMessageRepository messageRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ChatMessageSourceRepository sourceRepository;
+    @Mock
+    private DocumentRepository documentRepository;
 
     private ConversationService conversationService;
 
     @BeforeEach
     void setUp() {
-        conversationService = new ConversationService(conversationRepository, messageRepository, userRepository);
+        conversationService = new ConversationService(conversationRepository, messageRepository, userRepository, sourceRepository, documentRepository);
     }
 
     @Test
@@ -157,26 +166,38 @@ class ConversationServiceTest {
         Long userId = 1L;
         Long conversationId = 100L;
         Conversation conversation = mock(Conversation.class);
+        Document document = mock(Document.class);
 
         when(conversationRepository.findByIdAndUserId(conversationId, userId)).thenReturn(Optional.of(conversation));
+        when(documentRepository.findByIdAndUserId(10L, userId)).thenReturn(Optional.of(document));
+        when(messageRepository.save(any(ChatMessage.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        conversationService.addExchange(userId, conversationId, "What is RAG?", "RAG combines retrieval and generation.");
-        ArgumentCaptor<List<ChatMessage>> captor = ArgumentCaptor.forClass(List.class);
+        RagSource source = new RagSource(1, 10L, "rag.pdf", 5, 2, 0.94);
 
-        verify(messageRepository).saveAll(captor.capture());
+        conversationService.addExchange(userId, conversationId, "What is RAG?", "RAG uses retrieved context. [1]", List.of(source));
 
-        List<ChatMessage> messages = captor.getValue();
-        assertEquals(2, messages.size());
+        ArgumentCaptor<ChatMessage> messageCaptor = ArgumentCaptor.forClass(ChatMessage.class);
+        verify(messageRepository, times(2)).save(messageCaptor.capture());
+        List<ChatMessage> messages = messageCaptor.getAllValues();
+        assertEquals(ChatMessageRole.USER, messages.get(0).getRole());
+        assertEquals(ChatMessageRole.ASSISTANT, messages.get(1).getRole());
+        ArgumentCaptor<List<ChatMessageSource>> sourceCaptor = ArgumentCaptor.forClass(List.class);
 
-        ChatMessage userMessage = messages.get(0);
-        assertEquals(ChatMessageRole.USER, userMessage.getRole());
-        assertEquals("What is RAG?", userMessage.getContent());
-        assertSame(conversation, userMessage.getConversation());
+        verify(sourceRepository).saveAll(sourceCaptor.capture());
 
-        ChatMessage assistantMessage = messages.get(1);
-        assertEquals(ChatMessageRole.ASSISTANT, assistantMessage.getRole());
-        assertEquals("RAG combines retrieval and generation.", assistantMessage.getContent());
-        assertSame(conversation, assistantMessage.getConversation());
+        List<ChatMessageSource> persisted = sourceCaptor.getValue();
+
+        assertEquals(1, persisted.size());
+
+        ChatMessageSource savedSource = persisted.get(0);
+
+        assertEquals(1, savedSource.getSourceNumber());
+        assertEquals("rag.pdf", savedSource.getDocumentName());
+        assertEquals(5, savedSource.getPageNumber());
+        assertEquals(2, savedSource.getChunkIndex());
+        assertEquals(0.94, savedSource.getSimilarity(), 0.000001);
+        assertSame(document, savedSource.getDocument());
+        assertSame(messages.get(1), savedSource.getMessage());
         verify(conversation).touch();
     }
 
@@ -184,7 +205,7 @@ class ConversationServiceTest {
     void addExchange_shouldRejectForeignConversation() {
         when(conversationRepository.findByIdAndUserId(100L, 1L)).thenReturn(Optional.empty());
 
-        assertThrows(ConversationNotFoundException.class, () -> conversationService.addExchange(1L, 100L, "Question", "Answer"));
+        assertThrows(ConversationNotFoundException.class, () -> conversationService.addExchange(1L, 100L, "Question", "Answer", List.of()));
         verifyNoInteractions(messageRepository);
     }
 }

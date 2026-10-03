@@ -130,7 +130,7 @@ class ConversationControllerTest {
     @Test
     void messages_shouldReturnConversationHistory() throws Exception {
         ChatMessageResponse message = new ChatMessageResponse(500L, ChatMessageRole.USER, "What is RAG?",
-                LocalDateTime.of(2026, 10, 1, 10, 5));
+                LocalDateTime.of(2026, 10, 1, 10, 5), List.of());
 
         when(conversationService.getMessages(1L, 100L)).thenReturn(List.of(message));
 

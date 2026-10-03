@@ -11,6 +11,8 @@ import com.briefai.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.document.DocumentParsingException;
 import com.briefai.storage.service.FileStorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -20,6 +22,7 @@ import java.util.List;
 @Service
 public class DocumentIngestionService {
 
+    private static final Logger logger = LoggerFactory.getLogger(DocumentIngestionService.class);
     private final DocumentRepository documentRepository;
     private final FileStorageService fileStorageService;
     private final List<DocumentParser> parsers;
@@ -41,34 +44,6 @@ public class DocumentIngestionService {
         this.completionService = completionService;
     }
 
-    public ParsedDocument extract(Long documentId) {
-        statusService.startProcessing(documentId);
-        try {
-            Document document = documentRepository.findById(documentId)
-                    .orElseThrow(() -> new DocumentNotFoundException("Document not found."));
-
-            DocumentParser parser = parsers.stream().filter(p -> p.supports(document.getContentType())).findFirst()
-                    .orElseThrow(() -> new DocumentParsingException("No parser available for document type."));
-
-            ParsedDocument result;
-
-            InputStream inputStream = fileStorageService.open(document.getStorageKey());
-            result = parser.parse(inputStream);
-            validate(result);
-
-            return result;
-
-        } catch (RuntimeException e) {
-            try {
-                statusService.markFailed(documentId);
-            } catch (RuntimeException statusException) {
-                e.addSuppressed(statusException);
-            }
-
-            throw e;
-        }
-    }
-
     private void validate(ParsedDocument document) {
 
         if (document == null || document.getPages() == null || document.getPages().isEmpty()) {
@@ -87,14 +62,8 @@ public class DocumentIngestionService {
         }
     }
 
-    public List<DocumentChunk> extractAndChunk(Long documentId, Long userId) {
-        ParsedDocument parsed = extract(documentId);
-
-        return documentChunkService.chunk(documentId, userId, parsed);
-    }
-
     public void process(Long documentId) {
-
+        logger.debug("Starting to process document with id {}", documentId);
         // If another worker has already processing the document then we should not touch it
         statusService.startProcessing(documentId);
 
@@ -122,6 +91,7 @@ public class DocumentIngestionService {
 
         } catch (RuntimeException e) {
             try {
+                logger.error("Document processing failed.");
                 statusService.markFailed(documentId);
             } catch (RuntimeException statusException) {
                 e.addSuppressed(statusException);

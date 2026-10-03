@@ -5,6 +5,8 @@ import com.briefai.document.embedding.repository.DocumentChunkRepository;
 import com.briefai.document.entity.DocumentStatus;
 import com.briefai.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,7 +14,7 @@ import java.util.List;
 
 @Service
 public class DocumentIngestionCompletionService {
-
+    private static final Logger logger = LoggerFactory.getLogger(DocumentIngestionCompletionService.class);
     private final DocumentChunkRepository documentChunkRepository;
     private final DocumentRepository documentRepository;
 
@@ -23,6 +25,7 @@ public class DocumentIngestionCompletionService {
 
     @Transactional
     public void complete(Long documentId, List<EmbeddedChunk> chunks, Integer pageCount) {
+        logger.debug("Marking document ingestion complete");
         if (chunks == null || chunks.isEmpty()) {
             throw new IllegalArgumentException("Cannot complete ingestion without chunks.");
         }
@@ -43,5 +46,6 @@ public class DocumentIngestionCompletionService {
 
         documentChunkRepository.saveAll(chunks);
         document.markReady(pageCount);
+        logger.debug("Document ingestion complete and document is marked as ready.");
     }
 }
