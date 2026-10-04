@@ -6,6 +6,7 @@ import VerifyOtpPage from "./pages/VerifyOtpPage";
 import DocumentsPage from "./pages/DocumentsPage";
 import ChatPage from "./pages/ChatPage";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AppLayout from "./components/AppLayout";
 
 export default function App() {
   return (
@@ -15,9 +16,11 @@ export default function App() {
       <Route path="/verify" element={<VerifyOtpPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/documents" element={<DocumentsPage />} />
+        <Route element={<AppLayout />}>
+          <Route path="/documents" element={<DocumentsPage />} />
 
-        <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat" element={<ChatPage />} />
+        </Route>
       </Route>
 
       <Route path="/" element={<Navigate to="/documents" replace />} />
