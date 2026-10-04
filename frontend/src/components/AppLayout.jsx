@@ -3,8 +3,13 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 export default function AppLayout() {
   const navigate = useNavigate();
 
+  const userName = localStorage.getItem("briefai_user_name");
+  const userEmail = localStorage.getItem("briefai_user_email");
+
   const handleLogout = () => {
     localStorage.removeItem("briefai_token");
+    localStorage.removeItem("briefai_user_name");
+    localStorage.removeItem("briefai_user_email");
 
     navigate("/login", {
       replace: true,
@@ -80,6 +85,17 @@ export default function AppLayout() {
         </nav>
 
         <div className="sidebar-bottom">
+          <div className="sidebar-user">
+            <div className="sidebar-user-avatar">
+              {(userName || userEmail || "U").charAt(0).toUpperCase()}
+            </div>
+
+            <div className="sidebar-user-info">
+              {userName && <strong>{userName}</strong>}
+              {userEmail && <span>{userEmail}</span>}
+            </div>
+          </div>
+
           <button className="logout-button" onClick={handleLogout}>
             Sign out
           </button>

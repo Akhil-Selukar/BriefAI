@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   deleteDocument,
@@ -57,6 +58,7 @@ function getFileType(document) {
 
 export default function DocumentsPage() {
   const fileInputRef = useRef(null);
+  const navigate = useNavigate();
 
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -358,7 +360,12 @@ export default function DocumentsPage() {
                     )}
 
                     {document.status === "READY" && (
-                      <span className="ready-label">Ready to chat</span>
+                      <button
+                        className="chat-document-button"
+                        onClick={() => navigate("/chat?new=1")}
+                      >
+                        Start chat
+                      </button>
                     )}
 
                     {document.status === "FAILED" && (

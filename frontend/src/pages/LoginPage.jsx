@@ -37,6 +37,7 @@ export default function LoginPage() {
       const response = await login(email.trim(), password);
 
       localStorage.setItem("briefai_token", response.accessToken);
+      localStorage.setItem("briefai_user_email", email.trim());
 
       navigate("/documents", {
         replace: true,

@@ -40,6 +40,9 @@ export default function RegisterPage() {
 
       await register(form.name.trim(), form.email.trim(), form.password);
 
+      localStorage.setItem("briefai_user_name", form.name.trim());
+      localStorage.setItem("briefai_user_email", form.email.trim());
+
       navigate("/verify", {
         state: {
           email: form.email.trim(),
