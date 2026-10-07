@@ -1,9 +1,9 @@
-package com.briefai.document.controller;
+package com.briefai.document.document.controller;
 
 import com.briefai.auth.dto.AuthenticatedUser;
-import com.briefai.document.dto.DocumentResponse;
-import com.briefai.document.service.DocumentIngestionService;
-import com.briefai.document.service.DocumentService;
+import com.briefai.document.document.dto.DocumentResponse;
+import com.briefai.document.document.service.DocumentIngestionService;
+import com.briefai.document.document.service.DocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

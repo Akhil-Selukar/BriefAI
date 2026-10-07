@@ -1,9 +1,9 @@
-package com.briefai.document.service;
+package com.briefai.document.document.service;
 
 import com.briefai.document.embedding.dto.EmbeddedChunk;
 import com.briefai.document.embedding.repository.DocumentChunkRepository;
-import com.briefai.document.entity.DocumentStatus;
-import com.briefai.document.repository.DocumentRepository;
+import com.briefai.document.document.entity.DocumentStatus;
+import com.briefai.document.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

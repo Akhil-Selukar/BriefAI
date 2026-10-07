@@ -105,7 +105,7 @@ class AuthControllerTest {
     @Test
     void register_shouldReturn400ForInvalidPassword() throws Exception {
 
-        NewUserRequest request = new NewUserRequest("Penny", "penny@test.com", "short");
+        NewUserRequest request = new NewUserRequest("Penny", "penny@test.com", "1#Short");
 
         mockMvc.perform(
                         post("/api/v1/auth/register")
@@ -114,7 +114,7 @@ class AuthControllerTest {
                 )
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.message").value("Password must be between 8 and 100 characters"));
+                .andExpect(jsonPath("$.message").value("Password length must be between 8 to 20 characters."));
 
         verifyNoInteractions(authService);
     }

@@ -2,13 +2,16 @@ package com.briefai.document.service;
 
 import com.briefai.document.chunks.dto.DocumentChunk;
 import com.briefai.document.chunks.service.DocumentChunkService;
+import com.briefai.document.document.service.DocumentIngestionCompletionService;
+import com.briefai.document.document.service.DocumentIngestionService;
+import com.briefai.document.document.service.DocumentStatusService;
 import com.briefai.document.embedding.dto.EmbeddedChunk;
 import com.briefai.document.embedding.service.DocumentEmbeddingService;
-import com.briefai.document.entity.Document;
+import com.briefai.document.document.entity.Document;
 import com.briefai.document.parser.DocumentParser;
 import com.briefai.document.parser.dto.ParsedDocument;
 import com.briefai.document.parser.dto.ParsedPage;
-import com.briefai.document.repository.DocumentRepository;
+import com.briefai.document.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentParsingException;
 import com.briefai.storage.service.FileStorageService;
 import com.briefai.user.entity.User;

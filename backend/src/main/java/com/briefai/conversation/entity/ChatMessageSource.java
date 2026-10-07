@@ -1,6 +1,6 @@
 package com.briefai.conversation.entity;
 
-import com.briefai.document.entity.Document;
+import com.briefai.document.document.entity.Document;
 import jakarta.persistence.*;
 
 @Entity

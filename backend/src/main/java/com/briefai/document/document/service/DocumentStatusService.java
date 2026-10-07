@@ -1,8 +1,8 @@
-package com.briefai.document.service;
+package com.briefai.document.document.service;
 
-import com.briefai.document.entity.Document;
-import com.briefai.document.entity.DocumentStatus;
-import com.briefai.document.repository.DocumentRepository;
+import com.briefai.document.document.entity.Document;
+import com.briefai.document.document.entity.DocumentStatus;
+import com.briefai.document.document.repository.DocumentRepository;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.document.IllegalDocumentStateException;
 import org.slf4j.Logger;

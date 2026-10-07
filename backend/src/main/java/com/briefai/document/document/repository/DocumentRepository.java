@@ -1,7 +1,7 @@
-package com.briefai.document.repository;
+package com.briefai.document.document.repository;
 
-import com.briefai.document.entity.Document;
-import com.briefai.document.entity.DocumentStatus;
+import com.briefai.document.document.entity.Document;
+import com.briefai.document.document.entity.DocumentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

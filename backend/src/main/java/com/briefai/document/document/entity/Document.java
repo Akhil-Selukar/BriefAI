@@ -1,4 +1,4 @@
-package com.briefai.document.entity;
+package com.briefai.document.document.entity;
 
 import com.briefai.user.entity.User;
 import jakarta.persistence.*;

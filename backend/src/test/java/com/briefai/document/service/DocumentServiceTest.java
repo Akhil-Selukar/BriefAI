@@ -1,9 +1,10 @@
 package com.briefai.document.service;
 
-import com.briefai.document.dto.DocumentResponse;
-import com.briefai.document.entity.Document;
-import com.briefai.document.entity.DocumentStatus;
-import com.briefai.document.repository.DocumentRepository;
+import com.briefai.document.document.dto.DocumentResponse;
+import com.briefai.document.document.entity.Document;
+import com.briefai.document.document.entity.DocumentStatus;
+import com.briefai.document.document.repository.DocumentRepository;
+import com.briefai.document.document.service.DocumentService;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.storage.*;
 import com.briefai.exception.user.UserNotFoundException;

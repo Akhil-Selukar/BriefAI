@@ -1,6 +1,6 @@
-package com.briefai.document.dto;
+package com.briefai.document.document.dto;
 
-import com.briefai.document.entity.DocumentStatus;
+import com.briefai.document.document.entity.DocumentStatus;
 
 import java.time.LocalDateTime;
 

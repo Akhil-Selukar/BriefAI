@@ -1,4 +1,4 @@
-package com.briefai.document.entity;
+package com.briefai.document.document.entity;
 
 public enum DocumentStatus {
     UPLOADED,

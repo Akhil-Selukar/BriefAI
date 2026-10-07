@@ -2,10 +2,11 @@ package com.briefai.document.controller;
 
 import com.briefai.auth.dto.AuthenticatedUser;
 import com.briefai.config.SecurityConfig;
-import com.briefai.document.dto.DocumentResponse;
-import com.briefai.document.entity.DocumentStatus;
-import com.briefai.document.service.DocumentIngestionService;
-import com.briefai.document.service.DocumentService;
+import com.briefai.document.document.controller.DocumentController;
+import com.briefai.document.document.dto.DocumentResponse;
+import com.briefai.document.document.entity.DocumentStatus;
+import com.briefai.document.document.service.DocumentIngestionService;
+import com.briefai.document.document.service.DocumentService;
 import com.briefai.exception.document.DocumentNotFoundException;
 import com.briefai.exception.document.IllegalDocumentStateException;
 import com.briefai.security.service.JwtService;
