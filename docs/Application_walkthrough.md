@@ -121,6 +121,11 @@ Here in below screenshot we can see that the application correctly understood th
 
 ![Unrelated question response](/docs/images/app_screenshots/Unrelated_question_response.png)
 
+- It also has multilanguage support
+
+![Hindi conversation](/docs/images/app_screenshots/Hindi_conversation.png)
+![Spanish conversation](/docs/images/app_screenshots/Spanish_conversation.png)
+
 ### 6. Chat dashboard
 
 ![Chat dashboard](/docs/images/app_screenshots/Chat_dashboard.png)
