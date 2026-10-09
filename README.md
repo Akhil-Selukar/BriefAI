@@ -2,7 +2,13 @@
     <h1>BriefAI</h1>
 </div>
 
-BriefAI is a full-stack Retrieval Augmented Generation (RAG) application that allows users to upload documents and ask questions about the documents.
+BriefAI is a full-stack Retrieval Augmented Generation (RAG) application that allows users to upload documents and ask questions about the documents just like ChatGPT, Gemini or any other LLM based chatbot.
+
+<p align="center">
+  <!-- <img src="/docs/images/app_screenshots/Login_screen.png" width="30%" alt="Image 1">  -->
+  <img src="/docs/images/app_screenshots/Context_aware_question.png" width="48%" alt="Image 2"> 
+  <img src="/docs/images/app_screenshots/Document_dashboard.png" width="48%" alt="Image 3">
+</p>
 
 The application processes PDF and Word documents, generates vector embeddings, performs semantic retrieval using PostgreSQL with pgvector, and uses a locally hosted Ollama model to generate contextual answers with source citations.
 
@@ -24,7 +30,7 @@ It also includes email based account verification using OTP, JWT authentication,
 - Create and delete conversations.
 - Persist users question, answer given by model and citations used in it.
 - Use conversation history to support contextual follow up questions.
-- Persist conversations to refer after relogin or application restat.
+- Persist conversations to refer after relogin or application restart.
 
 ### Authentication & Security
 
@@ -60,7 +66,7 @@ The entire RAG pipeline is separated into two parts.
 
 #### 1. Document processing
 
-The content of documents are extracted and divided into overlapping chunks. Each chuk is then converted into a 768 dimensional embedding using Ollama's nomic-embed-text embedding model. The generated vectors and it's corresponding metadata is stored inPostgreSQL with pgvector. (The metadata contains information like document id, page number in the document form where the chunk is, user id of the document owner, etc. This metadata is used for citation purpose).
+The content of documents are extracted and divided into overlapping chunks. Each chunk is then converted into a 768 dimensional embedding using Ollama's nomic-embed-text embedding model. The generated vectors and it's corresponding metadata is stored in PostgreSQL with pgvector. (The metadata contains information like document id, page number in the document form where the chunk is, user id of the document owner, etc. This metadata is used for citation purpose).
 
 ![Document processing workflow](/docs/images/Document_processing_flow.png)
 
@@ -72,15 +78,15 @@ The document status transition from `Uploaded` to `Processing` when processing s
 
 ![Question answering process](/docs/images/Question_answering_flow.png)
 
-Whenever user asks a question, the application does consider the current conversation context and rewrite the question based on conversation context. Then the question is embedded to perform vector search over users documents in ready state. This search returns the chunks with highest similarity (i.e. relevant content from the document). Now this relevent chunks along with chat history and current question is used to generate the prompt which is further passed to the chat model. Chat model generate the answer using given context.<br>
+Whenever user asks a question, the application does consider the current conversation context and rewrite the question based on conversation context. Then the question is embedded to perform vector search over users documents in ready state. This search returns the chunks with highest similarity (i.e. relevant content from the document). Now this relevant chunks along with chat history and current question is used to generate the prompt which is further passed to the chat model. Chat model generate the answer using given context.<br>
 
-Here to prevent answering question of one user using other users document, the chunk retrival uses user id as well and match it with document's owner.
+Here to prevent answering question of one user using other users document, the chunk retrieval uses user id as well and match it with document's owner.
 
 After generating answer the application store new entry in conversation. These entries are used to answer any follow up questions in the conversation.
 
 ### Authentication workflow
 
-The application uses stateless JWT authentication to protect documents, conversations and retrival of relevant chunks. Every user account also has to be verified using email based OTP.
+The application uses stateless JWT authentication to protect documents, conversations and retrieval of relevant chunks. Every user account also has to be verified using email based OTP.
 
 Below is the flow for new user creation and account verification.
 ![New user creation and verification flow](/docs/images/New_user_creation_flow.png)
@@ -222,9 +228,24 @@ Once the containers are running, visit `http://localhost:3000`, BriefAI will be 
 
 > In case of any of the container is not running (status is not healthy) then use below commands to check logs.
 >
-> For backend use `docker compose logs -f backend` and for frontend use `docker compose logs -f frontend`.
+> For backend use below command.
 >
-> To stop and start the application use `docker compose down` and `docker compose up -d` respectivelly.
+> ```
+> docker compose logs -f backend
+> ```
+>
+> For frontend use.
+>
+> ```
+> docker compose logs -f frontend
+> ```
+>
+> To stop and start the application use below docker commands respectively.
+>
+> ```
+> docker compose down
+> docker compose up -d
+> ```
 
 ## API Overview
 
@@ -282,7 +303,7 @@ Ollama is selected so that the RAG pipeline can run without requiring a paid LLM
 - llama3.2:3b -> For natural language response generation
 - nomic-embed-text -> For embedding.
 
-This choice is made to make local development inexpensive and keep the model runtime under the developer's control. But it has a tradeoff as well. <b>The model `llama3.2:3b` is highly optimized for low-resource hardwares like laptops and desktops but it's reasoning capability is considerably lower that other large hosted models.</b>
+This choice is made to make local development inexpensive and keep the model runtime under the developer's control. But it has a tradeoff as well. <b>The model `llama3.2:3b` is highly optimized for low-resource hardware's like laptops and desktops but it's reasoning capability is considerably lower that other large hosted models.</b>
 
 ### 3. Synchronous Document Processing
 
