@@ -43,6 +43,8 @@ It also includes email based account verification using OTP, JWT authentication,
 - Well defined document processing lifecycle<br>
   `Upload -> Processing -> Ready/Failed`
 
+For step by step application walkthrough please visit [Application walkthrough.md](/docs/Application_walkthrough.md) file.
+
 ## High level application architecture
 
 ![High level architecture diagram](docs/images/High_level_architecture.png)
